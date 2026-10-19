@@ -20,6 +20,10 @@ Modifier combinations, modifier suppression, device filtering, updated permissio
 
 ## Build
 
+Requires macOS 14.0 or later and Xcode with Swift 6 support.
+The app uses Swift 6 language mode and pins LaunchAtLogin to version `1.1.0`.
+Debug and Release share an unsandboxed configuration for global input observation and posting.
+
 Open `huuuiii.xcodeproj` in Xcode and select the `huuuiii` scheme with the Debug configuration.
 Debug uses “Sign to Run Locally”, so no development team or Apple account is required.
 

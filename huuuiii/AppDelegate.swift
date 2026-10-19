@@ -10,6 +10,7 @@ import Cocoa
 import AppKit
 import SwiftUI
 
+@MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var flagsMonitor: Any?
     private var permissionsService = PermissionsService.shared

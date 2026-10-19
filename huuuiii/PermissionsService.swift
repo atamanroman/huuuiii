@@ -7,15 +7,18 @@
 
 import Cocoa
 import SwiftUI
+// The SDK exposes this immutable option key as a mutable C global.
+@preconcurrency import var ApplicationServices.kAXTrustedCheckOptionPrompt
 
 // Thanks to https://github.com/othyn/macos-auto-clicker/blob/main/auto-clicker/Services/PermissionsService.swift
 // This is a big pain.
 
+@MainActor
 final class PermissionsService: ObservableObject {
-    static var shared: PermissionsService = .init()
+    static let shared: PermissionsService = .init()
     private init() {}
 
-    func pollAccessibilityPrivileges(onTrusted: @escaping () -> Void) {
+    func pollAccessibilityPrivileges(onTrusted: @escaping @MainActor () -> Void) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             let isTrusted = AXIsProcessTrusted()
             UserDefaults.standard.setValue(!isTrusted, forKey: "needsPermission")
@@ -29,7 +32,7 @@ final class PermissionsService: ObservableObject {
     }
 
     static func acquireAccessibilityPrivileges() {
-        let options: NSDictionary = [kAXTrustedCheckOptionPrompt.takeRetainedValue() as NSString: true]
+        let options: NSDictionary = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as NSString: true]
         let enabled = AXIsProcessTrustedWithOptions(options)
         
         print(enabled)

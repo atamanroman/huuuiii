@@ -6,6 +6,8 @@ The fork is now named `huuuiii`; the original project is [Tabula](https://github
 The project, targets, source paths, resources, and app identity have been renamed, and the README identifies the fork.
 GPL-3.0-or-later licensing has been added for the fork changes; inherited-code licensing still needs clarification.
 Scrolling behavior has not been changed.
+The app now uses Swift 6 language mode, a consistent macOS 14.0 minimum, shared unsandboxed entitlements, and LaunchAtLogin pinned to `1.1.0`.
+Source line references below describe the inherited implementation and may shift as work is completed.
 
 ## What this repo does
 
@@ -59,19 +61,17 @@ Keep cursor restoration tied to the session that actually started.
 
 **Check:** Cover first movement, immediate reversal, two consecutive sessions, and unrelated modifier-flag changes.
 
-### 3. Debug and Release use different sandbox policies
+### 3. Resolved: Debug and Release now share an unsandboxed policy
 
-**Where:** [huuuiii.entitlements](huuuiii/huuuiii.entitlements), [huuuiiiRelease.entitlements](huuuiii/huuuiiiRelease.entitlements), and `CODE_SIGN_ENTITLEMENTS` in [project.pbxproj](huuuiii.xcodeproj/project.pbxproj).
+**Where:** [huuuiii.entitlements](huuuiii/huuuiii.entitlements) and `CODE_SIGN_ENTITLEMENTS` in [project.pbxproj](huuuiii.xcodeproj/project.pbxproj).
 
-**Problem:** Debug disables App Sandbox and Release enables it, despite both using the same global input and accessibility code.
+**Inherited problem:** Debug disabled App Sandbox and Release enabled it, despite both using the same global input and accessibility code.
 Apple lists assistive accessibility API use among the activities incompatible with App Sandbox, so a working Debug build does not establish that the shipping application works.
 See [Apple's sandbox restrictions](https://developer.apple.com/documentation/security/protecting-user-data-with-app-sandbox).
 
-**Do:** Use the same unsandboxed policy for Debug and direct-distribution Release builds, and retain Hardened Runtime for signing and notarization.
-Remove the user-selected-file entitlement if the app continues to have no file-access feature.
-Inspect the built app's entitlements and test the signed Release artifact with fresh permission grants.
-
-**If skipped:** The distributed build can fail even when a local development build works.
+**Changed:** Both configurations use the same empty entitlement file, and the separate Release entitlement file and unused user-selected-file access have been removed.
+Hardened Runtime remains enabled in project settings and is present in the locally signed Release artifact.
+Xcode disables it for the normal locally signed Debug build.
 
 **Check:** Verify global modifier observation and scroll posting in another application using the actual Release app.
 
@@ -143,18 +143,19 @@ Handle failure to create an event or register a monitor without force-unwrapping
 **Where:** [project.pbxproj](huuuiii.xcodeproj/project.pbxproj), [Package.resolved](huuuiii.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved), and [README.md](README.md).
 
 **Completed:** The project and app are named `huuuiii`, use `io.github.atamanroman.huuuiii`, and no longer select upstream's development team.
+Debug uses local ad hoc signing and builds without a development team.
+LaunchAtLogin is pinned to exactly `1.1.0` in the project and lockfile, preserving the previously locked source revision.
 The README identifies the Tabula fork, credits the original authors, and explains that upstream downloads install Tabula.
 Existing Tabula preferences are intentionally not migrated automatically, and permission grants and login registration belong to the new app identity.
 
 **Remaining problem:** Release signing still needs the maintainer's own team and credentials.
-LaunchAtLogin tracks `main`, with a revision recorded in the lockfile, so an intentional dependency refresh can move to unreviewed branch content.
 
 **Do:** Configure the maintainer's signing team before testing permission persistence and login registration.
-Pin a reviewed LaunchAtLogin release, update the lockfile, and point installation instructions at the fork once artifacts exist.
+Point installation instructions at the fork once artifacts exist.
 GPL-3.0-or-later now covers the fork changes, and the full GPL v3 text is in [LICENSE](LICENSE).
 Keep upstream attribution and clarify the missing inherited-code license and borrowed-code provenance before distributing releases.
 
-**If skipped:** Releases lack verified signing and inherited-code licensing, and dependency updates can change the build unexpectedly.
+**If skipped:** Releases lack verified distribution signing and inherited-code licensing.
 
 **Check:** Install the fork alongside upstream, verify separate preferences and login items, and test an upgrade of the signed fork.
 
@@ -163,14 +164,17 @@ Keep upstream attribution and clarify the missing inherited-code license and bor
 ### 9. Support the current macOS release
 
 - [ ] Build with the current stable Xcode and macOS SDK, then verify Debug and signed Release on macOS 27.
-- [ ] Decide the oldest supported macOS separately from the SDK used to build.
-- [ ] Align deployment targets across project, app, and retained test targets.
-- [ ] Review compiler warnings before deciding whether a Swift language-mode migration is needed.
+- [x] Retain macOS 14.0 as the minimum supported version while building with the selected Xcode SDK.
+- [x] Align deployment targets across project, app, and retained test targets at macOS 14.0.
+- [x] Migrate all application and retained test targets to Swift 6 language mode.
 - [ ] Refresh the README and screenshots after behavior and permission wording are settled.
 
 Apple lists macOS 27.0.1 as the latest release on the review date, matching this machine's `sw_vers` output.
 See [Apple's release list](https://support.apple.com/en-us/100100).
-The project was created with Xcode 15.4, uses Swift 5 language mode, and sets macOS 14.5 at project level but 14.0 on the app target.
+The project was created with Xcode 15.4 and now uses Swift 6 language mode with macOS 14.0 deployment targets.
+The app delegate, permission service, and permission-grant callback are isolated to the main actor, and the service singleton is immutable.
+Only the SDK's mutable declaration of the permission prompt key uses a scoped `@preconcurrency` import; that key is read without taking ownership.
+LaunchAtLogin retains its own declared language mode rather than being forced into the app's Swift 6 mode.
 `SDKROOT = macosx` already selects the SDK from the chosen Xcode; setting the deployment target to 27 would drop older systems rather than select a newer SDK.
 
 ### 10. Allow modifier combinations and hide the activation modifiers
@@ -274,13 +278,17 @@ Verify delay extremes, speed extremes, both axes individually and together, natu
 
 ## Verification and limits of this review
 
-- Read all four Swift sources, both entitlement files, the Xcode project, the dependency lockfile, and the README.
+- Read all four Swift sources, the original entitlement files, the Xcode project, the dependency lockfile, and the README.
 - Confirmed the project and entitlement property lists pass `plutil -lint`.
 - Reproduced the delayed-activation race and cross-session reversal suppression in small deterministic models without installing input monitors.
 - Confirmed local macOS 27.0.1 and Xcode 27.1, and checked Apple's release and API documentation plus SensibleSideButtons' source.
-- Attempted `xcodebuild -list` with automatic package resolution disabled.
-- Project inspection exited with code 70 before compilation because `IDESimulatorFoundation` could not resolve a symbol in `/Library/Developer/PrivateFrameworks/DVTDownloads.framework`.
-- This is a local Xcode/framework mismatch; no application compilation result or passing test run is claimed.
+- Repaired the initial Xcode framework mismatch with `xcodebuild -runFirstLaunch`, installing Xcode 27.1 system resources in place of the older 26.3 resources.
+- Reproduced the Swift 6 singleton isolation error before migrating permission handling to the main actor.
+- Type-checked the scoped permission-key import in Swift 6 with warnings treated as errors.
+- Built Debug and Release in Swift 6 on macOS 27.0.1 using Xcode 27.1, with the lockfile restricted to LaunchAtLogin `1.1.0`.
+- Verified both local ad hoc signatures and inspected both built apps for the absence of sandbox and file-access entitlements and a macOS 14.0 minimum.
+- Release used an explicit local signing override for verification; distribution signing, notarization, and runtime testing remain pending.
+- No automated test suite or macOS 14 runtime verification was performed.
 - Did not launch huuuiii, change privacy grants or login items, run signed Release behavior, inspect every binary image, or test physical pointer and trackpad hardware.
 
 **Verdict:** Fix activation ownership and establish a Release build that can perform its core input work before adding the requested features.
