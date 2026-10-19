@@ -27,9 +27,17 @@ Debug and Release share an unsandboxed configuration for global input observatio
 Open `huuuiii.xcodeproj` in Xcode and select the `huuuiii` scheme with the Debug configuration.
 Debug uses “Sign to Run Locally”, so no development team or Apple account is required.
 
-```sh
-xcodebuild -project huuuiii.xcodeproj -scheme huuuiii -configuration Debug -destination 'platform=macOS' -derivedDataPath build -onlyUsePackageVersionsFromResolvedFile build
-```
+With `just` installed, use the [justfile](justfile) for terminal builds.
+
+| Command | Action |
+| --- | --- |
+| `just` | List available recipes |
+| `just build` | Build Debug with a local signature |
+| `just run` | Build Debug and open the app |
+| `just release` | Build optimized Release with a local signature |
+| `just clean` | Clean build products |
+
+Build products are in `build/Build/Products/Debug` and `build/Build/Products/Release`.
 
 Local signing can require fresh permission grants after rebuilding; see [Apple's code-signing requirements](https://developer.apple.com/documentation/technotes/tn3127-inside-code-signing-requirements).
 Release distribution requires your own signing team and certificate.
