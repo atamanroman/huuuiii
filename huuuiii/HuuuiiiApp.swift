@@ -1,6 +1,6 @@
 //
-//  TabulaApp.swift
-//  Tabula
+//  HuuuiiiApp.swift
+//  huuuiii
 //
 //  Created by Lucas Rott on 20.08.24.
 //
@@ -8,11 +8,11 @@
 import SwiftUI
 
 @main
-struct TabulaApp: App {
+struct HuuuiiiApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
     var body: some Scene {
-        MenuBarExtra("TabulaApp", image: "Icon") {
+        MenuBarExtra("huuuiii", image: "Icon") {
             ContentView()
         }.menuBarExtraStyle(.window)
 

@@ -1,11 +1,15 @@
-# Tabula fork plan
+# huuuiii fork plan
 
 Reviewed on 2026-10-19 at upstream commit `693c951`.
-This is a review and implementation backlog; the application has not been changed.
+This review records inherited behavior and the implementation backlog.
+The fork is now named `huuuiii`; the original project is [Tabula](https://github.com/keyruu/Tabula).
+The project, targets, source paths, resources, and app identity have been renamed, and the README identifies the fork.
+GPL-3.0-or-later licensing has been added for the fork changes; inherited-code licensing still needs clarification.
+Scrolling behavior has not been changed.
 
 ## What this repo does
 
-Tabula turns pointer movement into horizontal and vertical pixel scrolling while a selected modifier is held.
+huuuiii turns pointer movement into horizontal and vertical pixel scrolling while a selected modifier is held.
 It runs as a menu bar application, stores preferences in `UserDefaults`, and uses LaunchAtLogin for its login setting.
 The expected load is one local user, with pointer events arriving continuously during scrolling.
 
@@ -13,10 +17,10 @@ The complete application is four Swift files:
 
 | File | Responsibility |
 | --- | --- |
-| [AppDelegate.swift](Tabula/AppDelegate.swift) | Startup, modifier matching, activation delay, pointer monitoring, and synthetic scroll events |
-| [PermissionsService.swift](Tabula/PermissionsService.swift) | Permission prompt and initial trust polling |
-| [ContentView.swift](Tabula/ContentView.swift) | Preferences and Quit |
-| [TabulaApp.swift](Tabula/TabulaApp.swift) | The only scene, a `MenuBarExtra` |
+| [AppDelegate.swift](huuuiii/AppDelegate.swift) | Startup, modifier matching, activation delay, pointer monitoring, and synthetic scroll events |
+| [PermissionsService.swift](huuuiii/PermissionsService.swift) | Permission prompt and initial trust polling |
+| [ContentView.swift](huuuiii/ContentView.swift) | Preferences and Quit |
+| [HuuuiiiApp.swift](huuuiii/HuuuiiiApp.swift) | The only scene, a `MenuBarExtra` |
 
 There are no test sources or CI workflows in the checkout.
 The Xcode project contains empty unit-test and UI-test targets.
@@ -25,7 +29,7 @@ The Xcode project contains empty unit-test and UI-test targets.
 
 ### 1. A previous key press can activate scrolling during a later press
 
-**Where:** [AppDelegate.swift](Tabula/AppDelegate.swift), lines 28–46 and 59–95.
+**Where:** [AppDelegate.swift](huuuiii/AppDelegate.swift), lines 28–46 and 59–95.
 
 **Problem:** Delayed callbacks share `stillPressed`, so releasing and pressing again makes an old callback valid again.
 With a 500 ms delay, press at 0 ms, release at 100 ms, and press at 200 ms: the old callback starts scrolling at 500 ms, only 300 ms into the new press.
@@ -41,7 +45,7 @@ Make starting and stopping safe to call repeatedly, including permission recover
 
 ### 2. Pointer state survives sessions and drops valid movement
 
-**Where:** [AppDelegate.swift](Tabula/AppDelegate.swift), lines 24–26 and 58–103.
+**Where:** [AppDelegate.swift](huuuiii/AppDelegate.swift), lines 24–26 and 58–103.
 
 **Problem:** `lastDelta` is never cleared, so the next scrolling session can discard a movement that happens to reverse the previous session's last movement.
 The same reversal check also discards intentional direction changes within a session.
@@ -57,7 +61,7 @@ Keep cursor restoration tied to the session that actually started.
 
 ### 3. Debug and Release use different sandbox policies
 
-**Where:** [Tabula.entitlements](Tabula/Tabula.entitlements), [TabulaRelease.entitlements](Tabula/TabulaRelease.entitlements), and `CODE_SIGN_ENTITLEMENTS` in [project.pbxproj](Tabula.xcodeproj/project.pbxproj).
+**Where:** [huuuiii.entitlements](huuuiii/huuuiii.entitlements), [huuuiiiRelease.entitlements](huuuiii/huuuiiiRelease.entitlements), and `CODE_SIGN_ENTITLEMENTS` in [project.pbxproj](huuuiii.xcodeproj/project.pbxproj).
 
 **Problem:** Debug disables App Sandbox and Release enables it, despite both using the same global input and accessibility code.
 Apple lists assistive accessibility API use among the activities incompatible with App Sandbox, so a working Debug build does not establish that the shipping application works.
@@ -71,12 +75,12 @@ Inspect the built app's entitlements and test the signed Release artifact with f
 
 **Check:** Verify global modifier observation and scroll posting in another application using the actual Release app.
 
-### 4. Releasing the modifier inside Tabula can leave scrolling active
+### 4. Releasing the modifier inside huuuiii can leave scrolling active
 
-**Where:** [AppDelegate.swift](Tabula/AppDelegate.swift), lines 28 and 59.
+**Where:** [AppDelegate.swift](huuuiii/AppDelegate.swift), lines 28 and 59.
 
-**Problem:** Both monitors are global monitors, which do not receive events delivered to Tabula itself.
-Starting a session in another application and releasing the modifier while Tabula receives events can therefore miss the stop transition.
+**Problem:** Both monitors are global monitors, which do not receive events delivered to huuuiii itself.
+Starting a session in another application and releasing the modifier while huuuiii receives events can therefore miss the stop transition.
 Apple documents this exclusion in [the global monitor API](https://developer.apple.com/documentation/appkit/nsevent/addglobalmonitorforevents(matching:handler:)).
 
 **Do:** Route local and global modifier changes through the same session transition logic, and stop an active session when the app becomes active.
@@ -85,13 +89,13 @@ Keep a single event tap as a later option if pointer suppression becomes necessa
 
 **If skipped:** Opening preferences while scrolling can leave the internal modifier state out of sync with the keyboard.
 
-**Check:** Start scrolling outside Tabula, open its preferences, release the modifier, and return to another app.
+**Check:** Start scrolling outside huuuiii, open its preferences, release the modifier, and return to another app.
 
 ## Should fix
 
 ### 5. Permission status stops updating after the first grant
 
-**Where:** [PermissionsService.swift](Tabula/PermissionsService.swift), lines 18–28, and [ContentView.swift](Tabula/ContentView.swift), lines 18–24.
+**Where:** [PermissionsService.swift](huuuiii/PermissionsService.swift), lines 18–28, and [ContentView.swift](huuuiii/ContentView.swift), lines 18–24.
 
 **Problem:** Polling stops as soon as trust is granted, and `needsPermission` is persisted as though it were a user preference.
 The first display can show a stale value, and the code has no recovery path for a later permission change while the process remains alive.
@@ -106,7 +110,7 @@ Provide an explanation and a button to open the appropriate System Settings pane
 
 ### 6. Scrolling depends on the pointer's bounded screen position
 
-**Where:** [AppDelegate.swift](Tabula/AppDelegate.swift), lines 58–62 and 88–100.
+**Where:** [AppDelegate.swift](huuuiii/AppDelegate.swift), lines 58–62 and 88–100.
 
 **Problem:** The code samples absolute cursor positions instead of using movement deltas from the delivered event.
 Once the cursor reaches a display edge, further movement in that direction cannot produce further position changes for this algorithm.
@@ -122,7 +126,7 @@ An event tap needs explicit failure handling, cleanup, and recovery when macOS d
 
 ### 7. Stored values can crash the event path
 
-**Where:** [AppDelegate.swift](Tabula/AppDelegate.swift), lines 39–60, 73–85, and 113–115.
+**Where:** [AppDelegate.swift](huuuiii/AppDelegate.swift), lines 39–60, 73–85, and 113–115.
 
 **Problem:** Preferences use forced casts, and scaled movement is converted directly to `Int32`.
 A wrongly typed preference or a non-finite or oversized speed written through `defaults` can crash the app rather than fall back to a valid value.
@@ -134,19 +138,23 @@ Handle failure to create an event or register a monitor without force-unwrapping
 
 **Check:** Test missing, wrongly typed, negative, non-finite, and oversized numeric preferences, plus a failed monitor installation.
 
-### 8. The fork still builds and advertises itself as upstream
+### 8. Finish dependency and release setup after establishing fork identity
 
-**Where:** [project.pbxproj](Tabula.xcodeproj/project.pbxproj), [Package.resolved](Tabula.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved), and [README.md](README.md).
+**Where:** [project.pbxproj](huuuiii.xcodeproj/project.pbxproj), [Package.resolved](huuuiii.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved), and [README.md](README.md).
 
-**Problem:** The app uses upstream's `de.keyruu.Tabula` identifier and development team, while downloads and Homebrew instructions still install upstream.
+**Completed:** The project and app are named `huuuiii`, use `io.github.atamanroman.huuuiii`, and no longer select upstream's development team.
+The README identifies the Tabula fork, credits the original authors, and explains that upstream downloads install Tabula.
+Existing Tabula preferences are intentionally not migrated automatically, and permission grants and login registration belong to the new app identity.
+
+**Remaining problem:** Release signing still needs the maintainer's own team and credentials.
 LaunchAtLogin tracks `main`, with a revision recorded in the lockfile, so an intentional dependency refresh can move to unreviewed branch content.
 
-**Do:** Choose the fork's bundle identifier and signing configuration before testing permissions and login registration, since changing identity later affects both.
-Explain how existing preferences are migrated or intentionally reset.
+**Do:** Configure the maintainer's signing team before testing permission persistence and login registration.
 Pin a reviewed LaunchAtLogin release, update the lockfile, and point installation instructions at the fork once artifacts exist.
-Keep upstream attribution and record the README's explicit invitation to fork; clarify the missing repository license and borrowed-code provenance before distributing releases under a chosen license.
+GPL-3.0-or-later now covers the fork changes, and the full GPL v3 text is in [LICENSE](LICENSE).
+Keep upstream attribution and clarify the missing inherited-code license and borrowed-code provenance before distributing releases.
 
-**If skipped:** Users can install the wrong app, builds depend on upstream configuration, and identity changes complicate upgrades and permission grants.
+**If skipped:** Releases lack verified signing and inherited-code licensing, and dependency updates can change the build unexpectedly.
 
 **Check:** Install the fork alongside upstream, verify separate preferences and login items, and test an upgrade of the signed fork.
 
@@ -167,7 +175,7 @@ The project was created with Xcode 15.4, uses Swift 5 language mode, and sets ma
 
 ### 10. Allow modifier combinations and hide the activation modifiers
 
-The activation modifiers must be hidden from applications and macOS while Tabula generates scrolling.
+The activation modifiers must be hidden from applications and macOS while huuuiii generates scrolling.
 Ctrl+scroll can trigger zoom, so modifier suppression is required behavior rather than an optional compatibility check.
 
 - [ ] Replace the single-value picker with independent selections for Control, Option, Command, Shift, and Function.
@@ -180,7 +188,7 @@ Ctrl+scroll can trigger zoom, so modifier suppression is required behavior rathe
 - [ ] Strip the selected activation modifiers from generated scroll events.
 - [ ] Verify whether clearing event flags also prevents actions driven by the physically held modifier; if necessary, prototype event interception that hides activation modifiers for the active scrolling session.
 - [ ] Preserve ordinary modifier shortcuts outside scrolling, including presses released before the trigger delay, and restore consistent modifier state after release or cancellation.
-- [ ] With macOS modifier-scroll zoom enabled, verify that Control-triggered Tabula scrolling scrolls without zooming.
+- [ ] With macOS modifier-scroll zoom enabled, verify that Control-triggered huuuiii scrolling scrolls without zooming.
 - [ ] Verify that combinations containing Control, Command, Option, or Shift do not trigger zoom, navigation, or other modified-scroll actions in target apps.
 
 **Touches:** `ContentView.swift`, modifier observation and scroll generation in `AppDelegate.swift`, preference migration, focused unit tests, and the README screenshot.
@@ -201,13 +209,13 @@ The label change alone does not establish that the permission API or required gr
 
 ### 12. Hide and restore the menu bar icon
 
-- [ ] Add “Hide Menu Bar Icon” with adjacent guidance that opening Tabula again restores access.
+- [ ] Add “Hide Menu Bar Icon” with adjacent guidance that opening huuuiii again restores access.
 - [ ] Restore access when the already running app is opened from Finder, Spotlight, or the command line.
 - [ ] Keep scrolling alive while hidden and keep a reachable route to preferences and Quit after reopening.
 - [ ] Start with session-only hiding, matching SensibleSideButtons; add persistence only if wanted later.
 - [ ] Verify permission recovery remains visible or recoverable while the icon is hidden.
 
-**Touches:** `TabulaApp.swift`, `AppDelegate.swift`, `ContentView.swift`, and lifecycle checks.
+**Touches:** `HuuuiiiApp.swift`, `AppDelegate.swift`, `ContentView.swift`, and lifecycle checks.
 [SensibleSideButtons' implementation](https://github.com/archagon/sensible-side-buttons/blob/master/SensibleSideButtons/AppDelegate.m) hides an `NSStatusItem` through `setVisible:NO` and restores it in `applicationShouldHandleReopen`.
 SwiftUI offers an [`isInserted` binding](https://developer.apple.com/documentation/swiftui/menubarextra/init(isinserted:content:label:)), but Apple documents automatic termination when a menu-only app's extra is removed in [the MenuBarExtra lifecycle](https://developer.apple.com/documentation/swiftui/menubarextra).
 Prototype that lifecycle before settling on SwiftUI visibility; use an AppKit-owned `NSStatusItem` hosting the existing SwiftUI preferences if necessary to preserve background operation.
@@ -217,7 +225,7 @@ Prototype that lifecycle before settling on SwiftUI visibility; use an AppKit-ow
 The original request says “touchbar events”; whether that means trackpad gestures or the MacBook Touch Bar remains open.
 Treat this as an experiment until the desired effect is clear.
 
-Tabula already posts pixel-based `CGEvent` scroll-wheel events.
+huuuiii already posts pixel-based `CGEvent` scroll-wheel events.
 Trackpad scrolling is also exposed to applications as scrolling, with continuous deltas and gesture or momentum phases; a different event category is not automatically required for smoother output.
 Apple exposes [`scrollWheelEventIsContinuous`](https://developer.apple.com/documentation/coregraphics/cgeventfield/scrollwheeleventiscontinuous), [`scrollWheelEventScrollPhase`](https://developer.apple.com/documentation/coregraphics/cgeventfield/scrollwheeleventscrollphase), and [`scrollWheelEventMomentumPhase`](https://developer.apple.com/documentation/coregraphics/cgeventfield/scrollwheeleventmomentumphase).
 Those fields provide an investigation path, not proof that setting them reproduces native trackpad behavior in every app.
@@ -235,7 +243,7 @@ Keep the current event mechanism until the experiment demonstrates a specific im
 
 ### 14. Filter by pointing device
 
-Allow selecting which mice, trackpads, or other pointing devices Tabula converts into scrolling.
+Allow selecting which mice, trackpads, or other pointing devices huuuiii converts into scrolling.
 For example, holding the activation combination should convert movement from a selected trackpad while an excluded mouse continues to move the pointer normally.
 The current implementation discards the mouse event and samples the shared cursor position, so it cannot distinguish those inputs.
 
@@ -273,7 +281,7 @@ Verify delay extremes, speed extremes, both axes individually and together, natu
 - Attempted `xcodebuild -list` with automatic package resolution disabled.
 - Project inspection exited with code 70 before compilation because `IDESimulatorFoundation` could not resolve a symbol in `/Library/Developer/PrivateFrameworks/DVTDownloads.framework`.
 - This is a local Xcode/framework mismatch; no application compilation result or passing test run is claimed.
-- Did not launch Tabula, change privacy grants or login items, run signed Release behavior, inspect every binary image, or test physical pointer and trackpad hardware.
+- Did not launch huuuiii, change privacy grants or login items, run signed Release behavior, inspect every binary image, or test physical pointer and trackpad hardware.
 
 **Verdict:** Fix activation ownership and establish a Release build that can perform its core input work before adding the requested features.
 Skip new dependencies, a broad architecture rewrite, automatic updating, and private gesture synthesis for this first fork pass.

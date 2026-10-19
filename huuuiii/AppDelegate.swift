@@ -1,6 +1,6 @@
 //
 //  AppDelegate.swift
-//  Tabula
+//  huuuiii
 //
 //  Created by Lucas Rott on 21.08.24.
 //
