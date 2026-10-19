@@ -20,10 +20,24 @@ Modifier combinations, modifier suppression, device filtering, updated permissio
 
 ## Build
 
-Open `huuuiii.xcodeproj` in Xcode, select the `huuuiii` scheme, and choose your own signing team before building.
+Open `huuuiii.xcodeproj` in Xcode and select the `huuuiii` scheme with the Debug configuration.
+Debug uses “Sign to Run Locally”, so no development team or Apple account is required.
+
+```sh
+xcodebuild -project huuuiii.xcodeproj -scheme huuuiii -configuration Debug -destination 'platform=macOS' -derivedDataPath build -onlyUsePackageVersionsFromResolvedFile build
+```
+
+Local signing can require fresh permission grants after rebuilding; see [Apple's code-signing requirements](https://developer.apple.com/documentation/technotes/tn3127-inside-code-signing-requirements).
+Release distribution requires your own signing team and certificate.
 The app uses the bundle identifier `io.github.atamanroman.huuuiii` and keeps its preferences and login registration separate from Tabula.
 Existing Tabula preferences are not migrated automatically, and macOS permissions must be granted to the fork separately.
 Upstream releases and the `keyruu-tabula` Homebrew package install Tabula rather than huuuiii.
+
+If Xcode reports a missing framework symbol in `IDESimulatorFoundation` before inspecting the project, install the system components matching the selected Xcode using [Apple's first-launch setup](https://developer.apple.com/documentation/xcode/downloading-and-installing-additional-xcode-components).
+
+```sh
+xcodebuild -runFirstLaunch
+```
 
 ## Credits and license
 
