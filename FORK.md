@@ -108,7 +108,7 @@ Failed modifier or movement monitor setup shows a retry action instead of silent
 **Checked:** Injected trust and monitor checks cover denied startup, grant, revocation, regrant, repeated readiness checks, failed modifier and pointer monitor installation, retry, and shutdown.
 Actual TCC transitions and any required relaunch still need live verification.
 
-### 6. Validate movement deltas and anchored scroll targeting on hardware
+### 6. Validate movement deltas and scroll targeting on hardware
 
 **Where:** [AppDelegate.swift](huuuiii/AppDelegate.swift), lines 58–62 and 88–100.
 
@@ -117,7 +117,9 @@ Once the cursor reaches a display edge, further movement in that direction canno
 The cursor also moves over other controls during scrolling, and the generated scroll event does not explicitly target the original position.
 
 **Changed:** Conversion now reads the delivered movement deltas even when cursor coordinates are unchanged.
-Generated scroll events explicitly use the session's starting location.
+Generated scroll events use the delivered movement's coordinates.
+Pinning every scroll event to the session origin caused repeated cursor resets and has been removed.
+The regression check covers changing movement coordinates independently of scroll deltas.
 Failure to read the initial cursor location cancels activation instead of force-unwrapping it.
 
 **Remaining:** Validate edge behavior and routing on real devices and applications.

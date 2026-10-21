@@ -37,9 +37,9 @@ struct ScrollSettings {
         return CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 2, wheel1: y, wheel2: x, wheel3: 0)
     }
 
-    func event(for movement: NSEvent, at origin: CGPoint, activationModifiers: NSEvent.ModifierFlags) -> CGEvent? {
+    func event(for movement: NSEvent, activationModifiers: NSEvent.ModifierFlags) -> CGEvent? {
         let scroll = event(delta: CGPoint(x: -movement.deltaX, y: -movement.deltaY))
-        scroll?.location = origin
+        if let location = movement.cgEvent?.location { scroll?.location = location }
         scroll?.flags = CGEventFlags(rawValue: UInt64(movement.modifierFlags.subtracting(activationModifiers).rawValue))
         return scroll
     }
