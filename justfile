@@ -13,6 +13,8 @@ test:
     build/ModifierBindingTests
     xcrun swiftc -swift-version 6 huuuiii/ModifierBinding.swift huuuiii/ModifierRecorder.swift tests/ModifierRecorderTests.swift -o build/ModifierRecorderTests
     build/ModifierRecorderTests
+    xcrun swiftc -swift-version 6 huuuiii/ScrollSettings.swift tests/ScrollSettingsTests.swift -o build/ScrollSettingsTests
+    build/ScrollSettingsTests
 
 release:
     xcodebuild -project huuuiii.xcodeproj -scheme huuuiii -configuration Release -destination 'platform=macOS' -derivedDataPath build -onlyUsePackageVersionsFromResolvedFile CODE_SIGN_IDENTITY=- build

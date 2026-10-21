@@ -15,7 +15,7 @@ huuuiii turns pointer movement into horizontal and vertical pixel scrolling whil
 It runs as a menu bar application, stores preferences in `UserDefaults`, and uses LaunchAtLogin for its login setting.
 The expected load is one local user, with pointer events arriving continuously during scrolling.
 
-The application is six Swift files:
+The application is seven Swift files:
 
 | File | Responsibility |
 | --- | --- |
@@ -25,6 +25,7 @@ The application is six Swift files:
 | [HuuuiiiApp.swift](huuuiii/HuuuiiiApp.swift) | The only scene, a `MenuBarExtra` |
 | [ModifierBinding.swift](huuuiii/ModifierBinding.swift) | Preference migration, modifier matching, recording state, and activation identifiers |
 | [ModifierRecorder.swift](huuuiii/ModifierRecorder.swift) | The focused modifier recording field |
+| [ScrollSettings.swift](huuuiii/ScrollSettings.swift) | Validated preferences and bounded scroll-event construction |
 
 Lightweight logic and native recorder checks live in [tests](tests) and run with `just test`.
 There are no CI workflows in the checkout.
@@ -126,19 +127,23 @@ An event tap needs explicit failure handling, cleanup, and recovery when macOS d
 
 **Check:** Test every screen edge, multiple displays, nested scroll views, and both pointer and trackpad input before choosing the implementation.
 
-### 7. Stored values can crash the event path
+### 7. Validated preferences no longer crash the event path
 
 **Where:** [AppDelegate.swift](huuuiii/AppDelegate.swift), lines 39–60, 73–85, and 113–115.
 
-**Problem:** Preferences use forced casts, and scaled movement is converted directly to `Int32`.
+**Inherited problem:** Preferences used forced casts, and scaled movement was converted directly to `Int32`.
 A wrongly typed preference or a non-finite or oversized speed written through `defaults` can crash the app rather than fall back to a valid value.
 
-**Do:** Use typed preference reads with defaults, validate finite speed and delay against the UI ranges, and bound values before integer conversion.
-Handle failure to create an event or register a monitor without force-unwrapping or silently claiming readiness.
+**Changed:** Strict numeric and Boolean reads fall back for invalid types, reject non-finite settings, and clamp speed and delay to the UI ranges.
+Startup and opening preferences normalize stored values before the controls use them.
+Scroll deltas reject non-finite input and saturate before integer conversion, including multiplication overflow and natural-scroll reversal.
+
+**Remaining:** Handle failure to create a cursor event or register a monitor without force-unwrapping or silently claiming readiness.
 
 **If skipped:** Invalid stored settings can repeatedly crash the app when scrolling starts.
 
-**Check:** Test missing, wrongly typed, negative, non-finite, and oversized numeric preferences, plus a failed monitor installation.
+**Checked:** `ScrollSettingsTests` covers missing, wrongly typed, negative, non-finite, and oversized numeric preferences, Boolean validation, normalization, both axes, and bounded conversion.
+Failed monitor installation remains to be covered with permission recovery.
 
 ### 8. Finish dependency and release setup after establishing fork identity
 
@@ -285,7 +290,7 @@ Verify delay extremes, speed extremes, both axes individually and together, natu
 
 ## Verification and limits of this review
 
-- Read all six Swift sources, the original entitlement files, the Xcode project, the dependency lockfile, and the README.
+- Read all seven Swift sources, the original entitlement files, the Xcode project, the dependency lockfile, and the README.
 - Confirmed the project and entitlement property lists pass `plutil -lint`.
 - Reproduced the delayed-activation race and cross-session reversal suppression in small deterministic models without installing input monitors.
 - Confirmed local macOS 27.0.1 and Xcode 27.1, and checked Apple's release and API documentation plus SensibleSideButtons' source.

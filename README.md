@@ -38,7 +38,7 @@ With `just` installed, use the [justfile](justfile) for terminal builds.
 | `just` | List available recipes |
 | `just build` | Build Debug with a local signature |
 | `just run` | Build Debug and open the app |
-| `just test` | Run modifier logic and native recorder checks |
+| `just test` | Run modifier, native recorder, and scroll settings checks |
 | `just release` | Build optimized Release with a local signature |
 | `just clean` | Clean build products |
 

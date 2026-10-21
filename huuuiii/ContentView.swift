@@ -60,6 +60,9 @@ struct ContentView: View {
             Divider()
             Button("Quit", action: { NSApplication.shared.terminate(nil) })
         }.padding(10)
-        .onAppear(perform: stopScrolling)
+        .onAppear {
+            ScrollSettings.normalize(in: .standard)
+            stopScrolling()
+        }
     }
 }

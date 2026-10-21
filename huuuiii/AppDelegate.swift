@@ -18,6 +18,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         ModifierBinding.migrate(in: .standard)
+        ScrollSettings.normalize(in: .standard)
         PermissionsService.acquireAccessibilityPrivileges()
         permissionsService.pollAccessibilityPrivileges(onTrusted: self.scrollMonitor)
     }
@@ -51,24 +52,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if matches {
                 let request = activation.request()
 
-                let triggerDelayAny = UserDefaults.standard
-                    .object(forKey: "triggerDelay")
-                let triggerDelay = triggerDelayAny != nil ? triggerDelayAny as! Double : 0.0
+                let triggerDelay = ScrollSettings(in: .standard).triggerDelay
                 
                 DispatchQueue.main.asyncAfter(deadline: .now() + (triggerDelay / 1000.0)) {
                     if !activation.isCurrent(request) || NSApp.isActive {
                         return
                     }
-                    let scrollSpeedAny = UserDefaults.standard
-                        .object(forKey: "scrollSpeed")
-                    let scrollSpeed = scrollSpeedAny != nil ? scrollSpeedAny as! CGFloat : 20.0
-                    
-                    let naturalScrollingAny = UserDefaults.standard.object(forKey: "naturalScrolling")
-                    let naturalScrolling = naturalScrollingAny != nil ? naturalScrollingAny as! Bool : true
-                    let xEnabledAny = UserDefaults.standard.object(forKey: "xEnabled")
-                    let xEnabled = xEnabledAny != nil ? xEnabledAny as! Bool : true
-                    let yEnabledAny = UserDefaults.standard.object(forKey: "yEnabled")
-                    let yEnabled = yEnabledAny != nil ? yEnabledAny as! Bool : true
+                    let settings = ScrollSettings(in: .standard)
                     
                     initialPos = CGEvent(source: nil)!.location
                     mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: .mouseMoved) { _ in
@@ -85,23 +75,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                                 }
                             }
                             if scroll {
-                                var x: Int32 = 0
-                                var y: Int32 = 0
-                                
-                                if xEnabled {
-                                    x = Int32(delta.x * scrollSpeed)
-                                }
-                                if yEnabled {
-                                    y = Int32(delta.y * scrollSpeed)
-                                }
-                                
-                                if naturalScrolling {
-                                    x = -x
-                                    y = -y
-                                }
-                                
-                                let scrollEvent = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 2, wheel1: y, wheel2: x, wheel3: 0)
-                                scrollEvent?.post(tap: CGEventTapLocation.cghidEventTap)
+                                settings.event(delta: delta)?.post(tap: .cghidEventTap)
                             }
                             lastDelta=delta
                         }

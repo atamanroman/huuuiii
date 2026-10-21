@@ -16,6 +16,7 @@
 		DBB7ED102C8CC69F00E055E6 /* PermissionsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBB7ED0F2C8CC69F00E055E6 /* PermissionsService.swift */; };
 		F4C930B62EF0123400000002 /* ModifierBinding.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4C930B62EF0123400000001 /* ModifierBinding.swift */; };
 		F4C930B62EF0123400000004 /* ModifierRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4C930B62EF0123400000003 /* ModifierRecorder.swift */; };
+		F4C930B62EF0123400000006 /* ScrollSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4C930B62EF0123400000005 /* ScrollSettings.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -48,6 +49,7 @@
 		DBB7ED0F2C8CC69F00E055E6 /* PermissionsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsService.swift; sourceTree = "<group>"; };
 		F4C930B62EF0123400000001 /* ModifierBinding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModifierBinding.swift; sourceTree = "<group>"; };
 		F4C930B62EF0123400000003 /* ModifierRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModifierRecorder.swift; sourceTree = "<group>"; };
+		F4C930B62EF0123400000005 /* ScrollSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollSettings.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -106,6 +108,7 @@
 				DBB7ED0F2C8CC69F00E055E6 /* PermissionsService.swift */,
 				F4C930B62EF0123400000001 /* ModifierBinding.swift */,
 				F4C930B62EF0123400000003 /* ModifierRecorder.swift */,
+				F4C930B62EF0123400000005 /* ScrollSettings.swift */,
 			);
 			path = huuuiii;
 			sourceTree = "<group>";
@@ -260,6 +263,7 @@
 				11C795A32C7611C100CF3F6A /* ContentView.swift in Sources */,
 				F4C930B62EF0123400000002 /* ModifierBinding.swift in Sources */,
 				F4C930B62EF0123400000004 /* ModifierRecorder.swift in Sources */,
+				F4C930B62EF0123400000006 /* ScrollSettings.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
