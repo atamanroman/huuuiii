@@ -202,14 +202,15 @@ Ctrl+scroll can trigger zoom, so modifier suppression is required behavior rathe
 - [x] Preserve exact-match behavior: an extra supported modifier stops scrolling.
 - [x] Reuse session cancellation whenever matching changes or recording begins.
 - [ ] Test every single modifier, multiple press/release orders, extra modifiers, Caps Lock, and Function/Globe behavior on real hardware.
-- [ ] Strip the selected activation modifiers from generated scroll events.
+- [x] Strip the selected activation modifiers from generated scroll events.
 - [ ] Verify whether clearing event flags also prevents actions driven by the physically held modifier; if necessary, prototype event interception that hides activation modifiers for the active scrolling session.
 - [ ] Preserve ordinary modifier shortcuts outside scrolling, including presses released before the trigger delay, and restore consistent modifier state after release or cancellation.
 - [ ] With macOS modifier-scroll zoom enabled, verify that Control-triggered huuuiii scrolling scrolls without zooming.
 - [ ] Verify that combinations containing Control, Command, Option, or Shift do not trigger zoom, navigation, or other modified-scroll actions in target apps.
 
 **Implemented in:** `ModifierBinding.swift`, `ModifierRecorder.swift`, `ContentView.swift`, `AppDelegate.swift`, and the checks in `tests`.
-Modifier suppression and an updated screenshot remain separate work.
+Generated scroll events explicitly remove the activation flags while preserving unrelated flags; tests cover all supported modifiers and combinations without posting input.
+Physical modifier interception, the macOS Ctrl+scroll zoom check, and an updated screenshot remain separate work.
 `NSEvent.ModifierFlags` already represents combinations, so this needs no shortcut-recording dependency or general hotkey framework.
 
 ### 11. Use “Device Control and Data Access” in permission guidance

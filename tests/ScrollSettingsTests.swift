@@ -69,13 +69,29 @@ struct ScrollSettingsTests {
                 let mouse = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: position, mouseButton: .left)!
                 mouse.setIntegerValueField(.mouseEventDeltaX, value: Int64(2 * direction))
                 mouse.setIntegerValueField(.mouseEventDeltaY, value: Int64(-3 * direction))
+                mouse.flags = []
                 let movement = NSEvent(cgEvent: mouse)!
-                let scroll = settings.event(for: movement, at: origin)!
+                let scroll = settings.event(for: movement, at: origin, activationModifiers: .option)!
                 assert(scroll.location == origin)
                 assert(scroll.getIntegerValueField(.scrollWheelEventPointDeltaAxis1) == Int64(60 * direction))
                 assert(scroll.getIntegerValueField(.scrollWheelEventPointDeltaAxis2) == Int64(-40 * direction))
             }
         }
+        let bindings: [NSEvent.ModifierFlags] = [.control, .option, .shift, .command, .function, [.control, .option], [.control, .option, .shift, .command, .function]]
+        for binding in bindings {
+            let mouse = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: origin, mouseButton: .left)!
+            let originalFlags = CGEventFlags(rawValue: UInt64(binding.rawValue)).union(.maskAlphaShift)
+            mouse.flags = originalFlags
+            mouse.setIntegerValueField(.mouseEventDeltaY, value: 1)
+            let scroll = settings.event(for: NSEvent(cgEvent: mouse)!, at: origin, activationModifiers: binding)!
+            assert(scroll.flags == .maskAlphaShift)
+            assert(mouse.flags == originalFlags)
+        }
+        let modifiedMouse = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: origin, mouseButton: .left)!
+        modifiedMouse.flags = [.maskControl, .maskShift, .maskCommand, .maskAlphaShift]
+        modifiedMouse.setIntegerValueField(.mouseEventDeltaY, value: 1)
+        let stripped = settings.event(for: NSEvent(cgEvent: modifiedMouse)!, at: origin, activationModifiers: .control)!
+        assert(stripped.flags == [.maskShift, .maskCommand, .maskAlphaShift])
         print("Preference validation, normalization, safe conversion, and scroll output checks passed.")
     }
 }

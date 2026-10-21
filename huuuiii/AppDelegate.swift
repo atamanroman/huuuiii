@@ -96,7 +96,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
                     initialPos = origin
                     mouseMonitor = self.addMonitor(.mouseMoved) { movement in
                         if movement.deltaX != 0 || movement.deltaY != 0 { pointerMoved = true }
-                        settings.event(for: movement, at: origin)?.post(tap: .cghidEventTap)
+                        settings.event(for: movement, at: origin, activationModifiers: required)?.post(tap: .cghidEventTap)
                     }
                     if mouseMonitor == nil {
                         self.failMonitoring("Could not monitor pointer movement. Check input access and try again.")

@@ -21,7 +21,8 @@ The screenshot below shows the inherited interface before the modifier picker wa
 <img alt="Settings inherited from Tabula" src="images/huuuiii-settings.png" width="300px"/>
 
 The permission screen explains the required access and links to System Settings, and live permission checks stop monitoring when access is revoked.
-Modifier suppression, device filtering, and menu bar icon hiding remain planned in [FORK.md](FORK.md).
+Generated scroll events omit the activation modifiers; whether physically held keys also need interception still requires a live macOS zoom check.
+Device filtering and menu bar icon hiding remain planned in [FORK.md](FORK.md).
 
 ## Build
 
