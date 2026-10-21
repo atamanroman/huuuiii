@@ -15,6 +15,10 @@ test:
     build/ModifierRecorderTests
     xcrun swiftc -swift-version 6 huuuiii/ScrollSettings.swift tests/ScrollSettingsTests.swift -o build/ScrollSettingsTests
     build/ScrollSettingsTests
+    xcrun swiftc -swift-version 6 huuuiii/PermissionsService.swift tests/PermissionsServiceTests.swift -o build/PermissionsServiceTests
+    build/PermissionsServiceTests
+    xcrun swiftc -swift-version 6 huuuiii/ModifierBinding.swift huuuiii/ScrollSettings.swift huuuiii/PermissionsService.swift huuuiii/AppDelegate.swift tests/InputLifecycleTests.swift -o build/InputLifecycleTests
+    build/InputLifecycleTests
 
 release:
     xcodebuild -project huuuiii.xcodeproj -scheme huuuiii -configuration Release -destination 'platform=macOS' -derivedDataPath build -onlyUsePackageVersionsFromResolvedFile CODE_SIGN_IDENTITY=- build

@@ -10,19 +10,27 @@ import LaunchAtLogin
 
 struct ContentView: View {
     let stopScrolling: () -> Void
+    let inputError: String?
+    let retryInput: () -> Void
+    @ObservedObject private var permissions = PermissionsService.shared
 
     @AppStorage(ModifierBinding.preferenceKey) private var modifierFlags = Int(NSEvent.ModifierFlags.option.rawValue)
     @AppStorage("scrollSpeed") private var scrollSpeed = 20.0
     @AppStorage("naturalScrolling") private var naturalScrolling = true
     @AppStorage("xEnabled") private var xEnabled = true
     @AppStorage("yEnabled") private var yEnabled = true
-    @AppStorage("needsPermission") private var needsPermission = false
     @AppStorage("triggerDelay") private var triggerDelay = 0.0
     
     var body: some View {
         VStack {
-            if needsPermission {
-                Text("This app needs accessbility access!")
+            if !permissions.isTrusted {
+                Text("Enable huuuiii in \(PermissionsService.settingsName).")
+                Text("Input access lets huuuiii observe modifier keys and turn pointer movement into scrolling.")
+                Link("Open System Settings", destination: PermissionsService.settingsURL)
+                    .buttonStyle(.bordered)
+            } else if let inputError {
+                Text(inputError)
+                Button("Try Again", action: retryInput)
             } else {
                 Form {
                     LabeledContent("General:") {

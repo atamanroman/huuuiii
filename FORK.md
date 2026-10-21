@@ -20,7 +20,7 @@ The application is seven Swift files:
 | File | Responsibility |
 | --- | --- |
 | [AppDelegate.swift](huuuiii/AppDelegate.swift) | Startup, modifier matching, activation delay, pointer monitoring, and synthetic scroll events |
-| [PermissionsService.swift](huuuiii/PermissionsService.swift) | Permission prompt and initial trust polling |
+| [PermissionsService.swift](huuuiii/PermissionsService.swift) | Live permission state, trust polling, and settings guidance |
 | [ContentView.swift](huuuiii/ContentView.swift) | Preferences and Quit |
 | [HuuuiiiApp.swift](huuuiii/HuuuiiiApp.swift) | The only scene, a `MenuBarExtra` |
 | [ModifierBinding.swift](huuuiii/ModifierBinding.swift) | Preference migration, modifier matching, recording state, and activation identifiers |
@@ -90,20 +90,23 @@ Keep a single event tap as a later option if pointer suppression becomes necessa
 
 ## Should fix
 
-### 5. Permission status stops updating after the first grant
+### 5. Resolved: permission state continues updating after a grant
 
 **Where:** [PermissionsService.swift](huuuiii/PermissionsService.swift), lines 18–28, and [ContentView.swift](huuuiii/ContentView.swift), lines 18–24.
 
-**Problem:** Polling stops as soon as trust is granted, and `needsPermission` is persisted as though it were a user preference.
+**Inherited problem:** Polling stopped as soon as trust was granted, and `needsPermission` was persisted as though it were a user preference.
 The first display can show a stale value, and the code has no recovery path for a later permission change while the process remains alive.
 
-**Do:** Read actual permission state on startup and when returning from System Settings, and derive the UI from that state.
-Stop pending activation and monitoring when permission is unavailable, and restart at most once when it returns.
-Provide an explanation and a button to open the appropriate System Settings pane.
+**Changed:** Permission state is read immediately, observed in memory, refreshed every second, and checked again when the app becomes active.
+Revocation cancels pending and active scrolling and removes the modifier monitor; regrant installs at most one monitor.
+Shutdown cancels polling and releases input monitors.
+The UI explains the required access and links to System Settings, using the macOS 27 label with the older Accessibility name on earlier systems.
+Failed modifier or movement monitor setup shows a retry action instead of silently claiming readiness.
 
 **If skipped:** The UI can claim the app is ready while input observation or posting is unavailable.
 
-**Check:** Cover denied startup, grant after startup, revocation, and regrant, including any relaunch macOS requires.
+**Checked:** Injected trust and monitor checks cover denied startup, grant, revocation, regrant, repeated readiness checks, failed modifier and pointer monitor installation, retry, and shutdown.
+Actual TCC transitions and any required relaunch still need live verification.
 
 ### 6. Validate movement deltas and anchored scroll targeting on hardware
 
@@ -136,12 +139,13 @@ A wrongly typed preference or a non-finite or oversized speed written through `d
 Startup and opening preferences normalize stored values before the controls use them.
 Scroll deltas reject non-finite input and saturate before integer conversion, including multiplication overflow and natural-scroll reversal.
 
-**Remaining:** Handle failure to create a cursor event or register a monitor without force-unwrapping or silently claiming readiness.
+**Changed:** Failure to read a cursor location or install an input monitor cancels monitoring and displays a retry action.
+Cursor restoration and scroll-event construction use optional results rather than forced event allocation.
 
 **If skipped:** Invalid stored settings can repeatedly crash the app when scrolling starts.
 
 **Checked:** `ScrollSettingsTests` covers missing, wrongly typed, negative, non-finite, and oversized numeric preferences, Boolean validation, normalization, both axes, and bounded conversion.
-Failed monitor installation remains to be covered with permission recovery.
+`InputLifecycleTests` covers failed modifier and movement monitor installation, retry, and cleanup.
 
 ### 8. Finish dependency and release setup after establishing fork identity
 
@@ -210,9 +214,9 @@ Modifier suppression and an updated screenshot remain separate work.
 
 ### 11. Use “Device Control and Data Access” in permission guidance
 
-- [ ] Replace the misspelled `accessbility` message with the current settings name and a short explanation of why input access is needed.
-- [ ] If older macOS versions remain supported, show their “Accessibility” label on those systems.
-- [ ] Keep the documented `AXIsProcessTrusted` and `AXIsProcessTrustedWithOptions` checks unless testing establishes a different requirement.
+- [x] Replace the misspelled `accessbility` message with the current settings name and a short explanation of why input access is needed.
+- [x] If older macOS versions remain supported, show their “Accessibility” label on those systems.
+- [x] Keep the documented `AXIsProcessTrusted` and `AXIsProcessTrustedWithOptions` checks unless testing establishes a different requirement.
 - [ ] Verify the System Settings link on every supported major version.
 - [ ] Request only the permissions the chosen observation and posting implementation actually needs.
 
@@ -276,8 +280,8 @@ Keep this scoped to pointing devices; separate activation-keyboard filtering is 
 ## Implementation order and release checks
 
 1. Establish fork identity, consistent entitlements, and a working current-Xcode build.
-2. Finish movement-state and preference validation fixes, with focused tests.
-3. Prototype device attribution together with activation-modifier suppression, then add device selection and permission recovery.
+2. Validate movement handling, preference bounds, and permission recovery on real input hardware.
+3. Prototype device attribution together with activation-modifier suppression, then add device selection.
 4. Add icon hiding with reliable reopen behavior.
 5. Investigate scrolling deltas and gesture phases against a repeatable hardware baseline.
 6. Update screenshots and installation instructions, then sign, notarize, and verify the actual distributed app.
@@ -300,9 +304,10 @@ Verify delay extremes, speed extremes, both axes individually and together, natu
 - Release used an explicit local signing override for verification; distribution signing, notarization, and runtime testing remain pending.
 - Ran `just test` for legacy preference migration, exact modifier matching, recording order, and stale activation cancellation.
 - Exercised the native field with local events, including rapid release, typed letters, Escape, focus loss, and removal without changing the saved chord.
+- Checked invalid settings and movement conversion without posting input events, and exercised permission and monitor transitions using injected trust and monitor functions.
 - No macOS 14 runtime or physical keyboard verification was performed.
 - Launched Debug while diagnosing the stale Accessibility grant, reset only the fork's grant, and reopened the same build for approval.
 - Did not verify access after approval, change login items, run signed Release behavior, inspect every binary image, or test physical pointer and trackpad hardware.
 
-**Verdict:** Finish movement handling and modifier suppression, then verify global scrolling and permission behavior using the signed Release app.
+**Verdict:** Verify movement handling and permission recovery on hardware, finish modifier suppression and device filtering, and check the signed Release app.
 Skip new dependencies, a broad architecture rewrite, automatic updating, and private gesture synthesis for this first fork pass.

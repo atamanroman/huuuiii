@@ -20,7 +20,8 @@ The screenshot below shows the inherited interface before the modifier picker wa
 
 <img alt="Settings inherited from Tabula" src="images/huuuiii-settings.png" width="300px"/>
 
-Modifier suppression, device filtering, updated permission guidance, and menu bar icon hiding remain planned in [FORK.md](FORK.md).
+The permission screen explains the required access and links to System Settings, and live permission checks stop monitoring when access is revoked.
+Modifier suppression, device filtering, and menu bar icon hiding remain planned in [FORK.md](FORK.md).
 
 ## Build
 
@@ -38,7 +39,7 @@ With `just` installed, use the [justfile](justfile) for terminal builds.
 | `just` | List available recipes |
 | `just build` | Build Debug with a local signature |
 | `just run` | Build Debug and open the app |
-| `just test` | Run modifier, native recorder, and scroll settings checks |
+| `just test` | Run modifier, recorder, scroll settings, and input lifecycle checks |
 | `just release` | Build optimized Release with a local signature |
 | `just clean` | Clean build products |
 
