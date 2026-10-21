@@ -17,5 +17,8 @@ test:
 release:
     xcodebuild -project huuuiii.xcodeproj -scheme huuuiii -configuration Release -destination 'platform=macOS' -derivedDataPath build -onlyUsePackageVersionsFromResolvedFile CODE_SIGN_IDENTITY=- build
 
+install:
+    cp -rf ./build/Build/Products/Release/huuuiii.app ~/Applications/
+
 clean:
     xcodebuild -project huuuiii.xcodeproj -scheme huuuiii -derivedDataPath build -onlyUsePackageVersionsFromResolvedFile clean
