@@ -62,6 +62,20 @@ struct ScrollSettingsTests {
         let event = settings.event(delta: CGPoint(x: 2, y: -3))!
         assert(event.getIntegerValueField(.scrollWheelEventPointDeltaAxis1) == -60)
         assert(event.getIntegerValueField(.scrollWheelEventPointDeltaAxis2) == 40)
+
+        let origin = CGPoint(x: 200, y: 300)
+        for position in [CGPoint.zero, CGPoint(x: 10000, y: 10000), CGPoint(x: -10000, y: -10000)] {
+            for direction in [1, -1, 1] {
+                let mouse = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: position, mouseButton: .left)!
+                mouse.setIntegerValueField(.mouseEventDeltaX, value: Int64(2 * direction))
+                mouse.setIntegerValueField(.mouseEventDeltaY, value: Int64(-3 * direction))
+                let movement = NSEvent(cgEvent: mouse)!
+                let scroll = settings.event(for: movement, at: origin)!
+                assert(scroll.location == origin)
+                assert(scroll.getIntegerValueField(.scrollWheelEventPointDeltaAxis1) == Int64(60 * direction))
+                assert(scroll.getIntegerValueField(.scrollWheelEventPointDeltaAxis2) == Int64(-40 * direction))
+            }
+        }
         print("Preference validation, normalization, safe conversion, and scroll output checks passed.")
     }
 }

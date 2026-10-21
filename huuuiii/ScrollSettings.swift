@@ -37,6 +37,12 @@ struct ScrollSettings {
         return CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 2, wheel1: y, wheel2: x, wheel3: 0)
     }
 
+    func event(for movement: NSEvent, at origin: CGPoint) -> CGEvent? {
+        let scroll = event(delta: CGPoint(x: -movement.deltaX, y: -movement.deltaY))
+        scroll?.location = origin
+        return scroll
+    }
+
     private static func number(in defaults: UserDefaults, key: String, fallback: Double, range: ClosedRange<Double>) -> Double {
         guard let value = defaults.object(forKey: key) as? NSNumber,
               CFGetTypeID(value) != CFBooleanGetTypeID(), value.doubleValue.isFinite else { return fallback }

@@ -27,8 +27,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard flagsMonitor == nil else { return }
         var mouseMonitor: Any?
         var initialPos: CGPoint?
-        var lastPos: CGPoint?
-        var lastDelta: CGPoint?
+        var pointerMoved = false
         var activation = ScrollActivation()
         stopScrolling = {
             activation.cancel()
@@ -36,13 +35,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 NSEvent.removeMonitor(mouseMonitor)
             }
             mouseMonitor = nil
-            if let initialPos, lastPos != nil {
+            if let initialPos, pointerMoved {
                 let mouseEvent = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: initialPos, mouseButton: .left)
                 mouseEvent?.post(tap: .cghidEventTap)
             }
             initialPos = nil
-            lastPos = nil
-            lastDelta = nil
+            pointerMoved = false
         }
         flagsMonitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { event in
             let required = ModifierBinding.value(in: .standard)
@@ -60,26 +58,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     }
                     let settings = ScrollSettings(in: .standard)
                     
-                    initialPos = CGEvent(source: nil)!.location
-                    mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: .mouseMoved) { _ in
-                        let pos = CGEvent(source: nil)!.location
-                        if let lastPos = lastPos {
-                            let delta = CGPoint(x: lastPos.x - pos.x, y: lastPos.y - pos.y)
-                            if delta == CGPoint() {
-                                return
-                            }
-                            var scroll = true
-                            if let lastDelta = lastDelta {
-                                if delta == CGPoint(x:-lastDelta.x,y:-lastDelta.y) {
-                                    scroll = false
-                                }
-                            }
-                            if scroll {
-                                settings.event(delta: delta)?.post(tap: .cghidEventTap)
-                            }
-                            lastDelta=delta
-                        }
-                        lastPos = pos
+                    guard let origin = CGEvent(source: nil)?.location else {
+                        self.pauseScrolling()
+                        return
+                    }
+                    initialPos = origin
+                    mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: .mouseMoved) { movement in
+                        if movement.deltaX != 0 || movement.deltaY != 0 { pointerMoved = true }
+                        settings.event(for: movement, at: origin)?.post(tap: .cghidEventTap)
                     }
                 }
             }

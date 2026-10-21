@@ -47,23 +47,17 @@ Releasing the combination, opening preferences, starting recording, or terminati
 **Checked:** Deterministic request, release, repress, and cancellation checks cover stale activation identifiers.
 Actual global pointer-event behavior still needs a live check.
 
-### 2. First movement and reversals can drop valid scrolling
+### 2. Resolved: first movement and reversals reach scroll output
 
 **Where:** [AppDelegate.swift](huuuiii/AppDelegate.swift), lines 24–26 and 58–103.
 
-**Completed:** Pointer positions and `lastDelta` are reset when a scrolling session ends.
+**Changed:** Scrolling uses each delivered event's movement deltas instead of subtracting sampled cursor positions.
+The first event is converted immediately, and the reversal heuristic and previous-position state have been removed.
 Unrelated modifier flags no longer restart a matching session.
 
-**Remaining problem:** The reversal check discards intentional direction changes within a session.
-`lastPos` starts empty, so the first movement is discarded.
-
-**Do:** Initialize the last pointer position when the session starts.
-Remove the reversal heuristic unless a reproducible synthetic-event feedback case justifies it; if feedback exists, identify generated events instead of guessing from direction.
-Keep cursor restoration tied to the session that actually started.
-
-**If skipped:** Short movements and direction reversals can feel unresponsive, and cursor restoration can use the wrong origin.
-
-**Check:** Cover first movement, immediate reversal, two consecutive sessions, and unrelated modifier-flag changes.
+**Checked:** Scroll-output tests cover the first event, immediate reversals, repeated conversions, and unchanged cursor positions at several simulated display coordinates.
+Cursor restoration remains tied to a session that received movement.
+Live device and direction calibration remains pending.
 
 ### 3. Resolved: Debug and Release now share an unsandboxed policy
 
@@ -111,16 +105,20 @@ Provide an explanation and a button to open the appropriate System Settings pane
 
 **Check:** Cover denied startup, grant after startup, revocation, and regrant, including any relaunch macOS requires.
 
-### 6. Scrolling depends on the pointer's bounded screen position
+### 6. Validate movement deltas and anchored scroll targeting on hardware
 
 **Where:** [AppDelegate.swift](huuuiii/AppDelegate.swift), lines 58–62 and 88–100.
 
-**Problem:** The code samples absolute cursor positions instead of using movement deltas from the delivered event.
+**Inherited problem:** The code sampled absolute cursor positions instead of using movement deltas from the delivered event.
 Once the cursor reaches a display edge, further movement in that direction cannot produce further position changes for this algorithm.
 The cursor also moves over other controls during scrolling, and the generated scroll event does not explicitly target the original position.
 
-**Do:** Test event movement deltas as the smallest fix for scrolling at screen edges.
-Decide whether scrolling should remain anchored to its starting location; if so, prototype an event tap that consumes active pointer movement and keeps the cursor anchored.
+**Changed:** Conversion now reads the delivered movement deltas even when cursor coordinates are unchanged.
+Generated scroll events explicitly use the session's starting location.
+Failure to read the initial cursor location cancels activation instead of force-unwrapping it.
+
+**Remaining:** Validate edge behavior and routing on real devices and applications.
+The pointer still physically moves during scrolling; prototype an event tap that consumes active pointer movement if hover changes or routing require it.
 An event tap needs explicit failure handling, cleanup, and recovery when macOS disables it.
 
 **If skipped:** Long scrolls can stop at screen edges, and moving across panes can change the scroll target.
@@ -248,7 +246,7 @@ Those fields provide an investigation path, not proof that setting them reproduc
 The [Touch Bar API](https://developer.apple.com/documentation/appkit/nstouchbar) serves a separate hardware interface.
 
 - [ ] Identify the desired effect: smoother deltas, inertia, gesture recognition, or actual Touch Bar input.
-- [ ] Fix dropped movements and screen-edge behavior first so those defects do not distort the comparison.
+- [x] Convert delivered movement deltas without dropping the first movement or reversals; hardware edge checks remain pending.
 - [ ] Compare the current pixel output with a minimal phase-aware prototype in Safari, Finder, a native scroll view, and an Electron app.
 - [ ] Check diagonal scrolling, immediate reversal, release, cancellation, app switching, and held-modifier behavior.
 - [ ] Implement momentum only if requested, including immediate cancellation on new input.
@@ -261,7 +259,7 @@ Keep the current event mechanism until the experiment demonstrates a specific im
 
 Allow selecting which mice, trackpads, or other pointing devices huuuiii converts into scrolling.
 For example, holding the activation combination should convert movement from a selected trackpad while an excluded mouse continues to move the pointer normally.
-The current implementation discards the mouse event and samples the shared cursor position, so it cannot distinguish those inputs.
+The current implementation reads mouse-event deltas but does not identify their physical source, so it cannot distinguish those inputs.
 
 - [ ] Offer “All pointing devices” for the existing behavior and a selection of individual connected devices.
 - [ ] Identify the physical source of each movement before conversion, and prove reliable attribution with two devices connected before choosing the input API.
