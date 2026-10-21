@@ -17,8 +17,10 @@ test:
     build/ScrollSettingsTests
     xcrun swiftc -swift-version 6 huuuiii/PermissionsService.swift tests/PermissionsServiceTests.swift -o build/PermissionsServiceTests
     build/PermissionsServiceTests
-    xcrun swiftc -swift-version 6 huuuiii/ModifierBinding.swift huuuiii/ScrollSettings.swift huuuiii/PermissionsService.swift huuuiii/AppDelegate.swift tests/InputLifecycleTests.swift -o build/InputLifecycleTests
+    xcrun swiftc -swift-version 6 huuuiii/ModifierBinding.swift huuuiii/ScrollSettings.swift huuuiii/PointerScrollSession.swift huuuiii/PermissionsService.swift huuuiii/AppDelegate.swift tests/InputLifecycleTests.swift -o build/InputLifecycleTests
     build/InputLifecycleTests
+    xcrun swiftc -swift-version 6 huuuiii/ModifierBinding.swift huuuiii/ScrollSettings.swift huuuiii/PointerScrollSession.swift tests/PointerScrollSessionTests.swift -o build/PointerScrollSessionTests
+    build/PointerScrollSessionTests
 
 release:
     xcodebuild -project huuuiii.xcodeproj -scheme huuuiii -configuration Release -destination 'platform=macOS' -derivedDataPath build -onlyUsePackageVersionsFromResolvedFile CODE_SIGN_IDENTITY=- build
@@ -26,7 +28,6 @@ release:
 install:
     killall huuuiii || true
     cp -rf ./build/Build/Products/Release/huuuiii.app ~/Applications/
-
 
 clean:
     xcodebuild -project huuuiii.xcodeproj -scheme huuuiii -derivedDataPath build -onlyUsePackageVersionsFromResolvedFile clean

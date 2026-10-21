@@ -9,6 +9,7 @@ The fork starts from Tabula 1.5.0, with completed changes and planned work track
 ## Current features
 
 - Record a modifier combination to scroll horizontally and vertically.
+- Hold the pointer at the scroll target while converting movement into scrolling.
 - Adjust scroll speed, activation delay, and scrolling direction.
 - Enable launch at login.
 

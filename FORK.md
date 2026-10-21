@@ -15,7 +15,7 @@ huuuiii turns pointer movement into horizontal and vertical pixel scrolling whil
 It runs as a menu bar application, stores preferences in `UserDefaults`, and uses LaunchAtLogin for its login setting.
 The expected load is one local user, with pointer events arriving continuously during scrolling.
 
-The application is seven Swift files:
+The application is eight Swift files:
 
 | File | Responsibility |
 | --- | --- |
@@ -26,6 +26,7 @@ The application is seven Swift files:
 | [ModifierBinding.swift](huuuiii/ModifierBinding.swift) | Preference migration, modifier matching, recording state, and activation identifiers |
 | [ModifierRecorder.swift](huuuiii/ModifierRecorder.swift) | The focused modifier recording field |
 | [ScrollSettings.swift](huuuiii/ScrollSettings.swift) | Validated preferences and bounded scroll-event construction |
+| [PointerScrollSession.swift](huuuiii/PointerScrollSession.swift) | Active movement interception, cursor confinement, and event tap cleanup |
 
 Lightweight logic and native recorder checks live in [tests](tests) and run with `just test`.
 There are no CI workflows in the checkout.
@@ -51,12 +52,12 @@ Actual global pointer-event behavior still needs a live check.
 
 **Where:** [AppDelegate.swift](huuuiii/AppDelegate.swift), lines 24–26 and 58–103.
 
-**Changed:** Scrolling uses each delivered event's movement deltas instead of subtracting sampled cursor positions.
+**Changed:** Scrolling uses raw Quartz movement deltas instead of subtracting sampled cursor positions.
 The first event is converted immediately, and the reversal heuristic and previous-position state have been removed.
 Unrelated modifier flags no longer restart a matching session.
 
 **Checked:** Scroll-output tests cover the first event, immediate reversals, repeated conversions, and unchanged cursor positions at several simulated display coordinates.
-Cursor restoration remains tied to a session that received movement.
+Pointer sessions consume converted movement and do not post mouse-move events to restore the cursor on cancellation.
 Live device and direction calibration remains pending.
 
 ### 3. Resolved: Debug and Release now share an unsandboxed policy
@@ -108,7 +109,7 @@ Failed modifier or movement monitor setup shows a retry action instead of silent
 **Checked:** Injected trust and monitor checks cover denied startup, grant, revocation, regrant, repeated readiness checks, failed modifier and pointer monitor installation, retry, and shutdown.
 Actual TCC transitions and any required relaunch still need live verification.
 
-### 6. Validate movement deltas and scroll targeting on hardware
+### 6. Keep scrolling independent of display edges
 
 **Where:** [AppDelegate.swift](huuuiii/AppDelegate.swift), lines 58–62 and 88–100.
 
@@ -116,15 +117,19 @@ Actual TCC transitions and any required relaunch still need live verification.
 Once the cursor reaches a display edge, further movement in that direction cannot produce further position changes for this algorithm.
 The cursor also moves over other controls during scrolling, and the generated scroll event does not explicitly target the original position.
 
-**Changed:** Conversion now reads the delivered movement deltas even when cursor coordinates are unchanged.
-Generated scroll events use the delivered movement's coordinates.
-Pinning every scroll event to the session origin caused repeated cursor resets and has been removed.
-The regression check covers changing movement coordinates independently of scroll deltas.
+**Changed:** An active session event tap converts raw Quartz movement deltas before AppKit's global event monitor would receive the movement.
+It consumes the original movement and holds the pointer at the session origin with [`CGWarpMouseCursorPosition`](https://developer.apple.com/documentation/coregraphics/cgwarpmousecursorposition(_:)), which generates no input events.
+Converted scroll events are posted downstream of the tap at that same location.
+This replaces both unconstrained pointer travel and the earlier attempt to anchor scrolling by changing scroll-event coordinates alone.
+Stopping the session removes and invalidates the tap, with no synthetic mouse-move restoration.
 Failure to read the initial cursor location cancels activation instead of force-unwrapping it.
+Tap installation failure, cursor-placement failure, and tap disablement stop the session and expose the existing retry UI.
 
-**Remaining:** Validate edge behavior and routing on real devices and applications.
-The pointer still physically moves during scrolling; prototype an event tap that consumes active pointer movement if hover changes or routing require it.
-An event tap needs explicit failure handling, cleanup, and recovery when macOS disables it.
+**Checked:** Session tests consume movements at several simulated display coordinates, preserve first movements and reversals, pin output to the origin, preserve unrelated modifier flags, and pass normal movement after cancellation or failure.
+Lifecycle tests cover delayed activation cancellation, failed tap startup, and session teardown on termination.
+Both disabled axes leave ordinary movement available.
+
+**Remaining:** Validate actual event-tap delivery, edge behavior, cursor stability, and routing on real devices and applications.
 
 **If skipped:** Long scrolls can stop at screen edges, and moving across panes can change the scroll target.
 
@@ -142,7 +147,7 @@ Startup and opening preferences normalize stored values before the controls use 
 Scroll deltas reject non-finite input and saturate before integer conversion, including multiplication overflow and natural-scroll reversal.
 
 **Changed:** Failure to read a cursor location or install an input monitor cancels monitoring and displays a retry action.
-Cursor restoration and scroll-event construction use optional results rather than forced event allocation.
+Scroll-event construction uses optional results rather than forced event allocation.
 
 **If skipped:** Invalid stored settings can repeatedly crash the app when scrolling starts.
 
@@ -295,7 +300,7 @@ Verify delay extremes, speed extremes, both axes individually and together, natu
 
 ## Verification and limits of this review
 
-- Read all seven Swift sources, the original entitlement files, the Xcode project, the dependency lockfile, and the README.
+- Read all eight Swift sources, the original entitlement files, the Xcode project, the dependency lockfile, and the README.
 - Confirmed the project and entitlement property lists pass `plutil -lint`.
 - Reproduced the delayed-activation race and cross-session reversal suppression in small deterministic models without installing input monitors.
 - Confirmed local macOS 27.0.1 and Xcode 27.1, and checked Apple's release and API documentation plus SensibleSideButtons' source.

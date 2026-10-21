@@ -70,8 +70,7 @@ struct ScrollSettingsTests {
                 mouse.setIntegerValueField(.mouseEventDeltaX, value: Int64(2 * direction))
                 mouse.setIntegerValueField(.mouseEventDeltaY, value: Int64(-3 * direction))
                 mouse.flags = []
-                let movement = NSEvent(cgEvent: mouse)!
-                let scroll = settings.event(for: movement, activationModifiers: .option)!
+                let scroll = settings.event(for: mouse, activationModifiers: .option)!
                 guard scroll.location == position else {
                     print("Scroll event reset the pointer from \(position) to \(scroll.location)")
                     exit(1)
@@ -86,14 +85,14 @@ struct ScrollSettingsTests {
             let originalFlags = CGEventFlags(rawValue: UInt64(binding.rawValue)).union(.maskAlphaShift)
             mouse.flags = originalFlags
             mouse.setIntegerValueField(.mouseEventDeltaY, value: 1)
-            let scroll = settings.event(for: NSEvent(cgEvent: mouse)!, activationModifiers: binding)!
+            let scroll = settings.event(for: mouse, activationModifiers: binding)!
             assert(scroll.flags == .maskAlphaShift)
             assert(mouse.flags == originalFlags)
         }
         let modifiedMouse = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: origin, mouseButton: .left)!
         modifiedMouse.flags = [.maskControl, .maskShift, .maskCommand, .maskAlphaShift]
         modifiedMouse.setIntegerValueField(.mouseEventDeltaY, value: 1)
-        let stripped = settings.event(for: NSEvent(cgEvent: modifiedMouse)!, activationModifiers: .control)!
+        let stripped = settings.event(for: modifiedMouse, activationModifiers: .control)!
         assert(stripped.flags == [.maskShift, .maskCommand, .maskAlphaShift])
         print("Preference validation, normalization, safe conversion, and scroll output checks passed.")
     }

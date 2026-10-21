@@ -18,6 +18,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private let defaults: UserDefaults
     private let addMonitor: (NSEvent.EventTypeMask, @escaping (NSEvent) -> Void) -> Any?
     private let removeMonitor: (Any) -> Void
+    private let startPointerScroll: @MainActor (ScrollSettings, CGPoint, NSEvent.ModifierFlags, @escaping (String?) -> Void) -> PointerScrollSession.Stop?
     private var stopScrolling: (() -> Void)?
 
     override convenience init() {
@@ -26,11 +27,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
     init(permissionsService: PermissionsService, defaults: UserDefaults = .standard,
          addMonitor: @escaping (NSEvent.EventTypeMask, @escaping (NSEvent) -> Void) -> Any? = NSEvent.addGlobalMonitorForEvents,
-         removeMonitor: @escaping (Any) -> Void = NSEvent.removeMonitor) {
+         removeMonitor: @escaping (Any) -> Void = NSEvent.removeMonitor,
+         startPointerScroll: @escaping @MainActor (ScrollSettings, CGPoint, NSEvent.ModifierFlags, @escaping (String?) -> Void) -> PointerScrollSession.Stop? = PointerScrollSession.start) {
         self.permissionsService = permissionsService
         self.defaults = defaults
         self.addMonitor = addMonitor
         self.removeMonitor = removeMonitor
+        self.startPointerScroll = startPointerScroll
         super.init()
     }
     
@@ -56,22 +59,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     func scrollMonitor() {
         guard flagsMonitor == nil else { return }
         inputError = nil
-        var mouseMonitor: Any?
-        var initialPos: CGPoint?
-        var pointerMoved = false
+        var stopPointerScroll: PointerScrollSession.Stop?
         var activation = ScrollActivation()
-        stopScrolling = { [removeMonitor] in
+        stopScrolling = {
             activation.cancel()
-            if let mouseMonitor = mouseMonitor {
-                removeMonitor(mouseMonitor)
-            }
-            mouseMonitor = nil
-            if let initialPos, pointerMoved {
-                let mouseEvent = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: initialPos, mouseButton: .left)
-                mouseEvent?.post(tap: .cghidEventTap)
-            }
-            initialPos = nil
-            pointerMoved = false
+            stopPointerScroll?()
+            stopPointerScroll = nil
         }
         flagsMonitor = addMonitor(.flagsChanged) { event in
             let required = ModifierBinding.value(in: self.defaults)
@@ -93,13 +86,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
                         self.failMonitoring("Could not read the pointer location. Try again.")
                         return
                     }
-                    initialPos = origin
-                    mouseMonitor = self.addMonitor(.mouseMoved) { movement in
-                        if movement.deltaX != 0 || movement.deltaY != 0 { pointerMoved = true }
-                        settings.event(for: movement, activationModifiers: required)?.post(tap: .cghidEventTap)
+                    stopPointerScroll = self.startPointerScroll(settings, origin, required) { [weak owner = self] message in
+                        if let message {
+                            owner?.failMonitoring(message)
+                        } else {
+                            owner?.pauseScrolling()
+                        }
                     }
-                    if mouseMonitor == nil {
-                        self.failMonitoring("Could not monitor pointer movement. Check input access and try again.")
+                    if stopPointerScroll == nil {
+                        self.failMonitoring("Could not intercept pointer movement. Check input access and try again.")
                     }
                 }
             }
