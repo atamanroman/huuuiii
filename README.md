@@ -3,20 +3,24 @@
 <img alt="huuuiii icon inherited from Tabula" src="images/huuuiii-512.png" width="150px"/>
 
 huuuiii is a fork of [keyruu/Tabula](https://github.com/keyruu/Tabula), originally created by Lucas Rott.
-It enables one-finger scrolling on macOS by converting pointer movement into scrolling while a modifier key is held.
-The fork starts from Tabula 1.5.0 and retains its scrolling behavior while the changes in [FORK.md](FORK.md) are developed.
+It enables one-finger scrolling on macOS by converting pointer movement into scrolling while a modifier combination is held.
+The fork starts from Tabula 1.5.0, with completed changes and planned work tracked in [FORK.md](FORK.md).
 
 ## Current features
 
-- Hold a configurable modifier to scroll horizontally and vertically.
+- Record a modifier combination to scroll horizontally and vertically.
 - Adjust scroll speed, activation delay, and scrolling direction.
 - Enable launch at login.
 
-The inherited settings interface is shown below.
+Click the Scroll modifiers field, hold the desired modifier keys together, and release all of them to save.
+Press Escape or move focus away to cancel recording.
+Control, Option, Shift, Command, and Function can be combined, and existing single-modifier preferences are preserved.
+
+The screenshot below shows the inherited interface before the modifier picker was replaced with a recording field.
 
 <img alt="Settings inherited from Tabula" src="images/huuuiii-settings.png" width="300px"/>
 
-Modifier combinations, modifier suppression, device filtering, updated permission guidance, and menu bar icon hiding are planned in [FORK.md](FORK.md).
+Modifier suppression, device filtering, updated permission guidance, and menu bar icon hiding remain planned in [FORK.md](FORK.md).
 
 ## Build
 
@@ -34,6 +38,7 @@ With `just` installed, use the [justfile](justfile) for terminal builds.
 | `just` | List available recipes |
 | `just build` | Build Debug with a local signature |
 | `just run` | Build Debug and open the app |
+| `just test` | Run modifier logic and native recorder checks |
 | `just release` | Build optimized Release with a local signature |
 | `just clean` | Clean build products |
 

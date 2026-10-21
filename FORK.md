@@ -5,17 +5,17 @@ This review records inherited behavior and the implementation backlog.
 The fork is now named `huuuiii`; the original project is [Tabula](https://github.com/keyruu/Tabula).
 The project, targets, source paths, resources, and app identity have been renamed, and the README identifies the fork.
 GPL-3.0-or-later licensing has been added for the fork changes; inherited-code licensing still needs clarification.
-Scrolling behavior has not been changed.
+Scrolling still uses the inherited pointer-to-pixel conversion, with updated binding recording and activation handling.
 The app now uses Swift 6 language mode, a consistent macOS 14.0 minimum, shared unsandboxed entitlements, and LaunchAtLogin pinned to `1.1.0`.
 Source line references below describe the inherited implementation and may shift as work is completed.
 
 ## What this repo does
 
-huuuiii turns pointer movement into horizontal and vertical pixel scrolling while a selected modifier is held.
+huuuiii turns pointer movement into horizontal and vertical pixel scrolling while a selected modifier combination is held.
 It runs as a menu bar application, stores preferences in `UserDefaults`, and uses LaunchAtLogin for its login setting.
 The expected load is one local user, with pointer events arriving continuously during scrolling.
 
-The complete application is four Swift files:
+The application is six Swift files:
 
 | File | Responsibility |
 | --- | --- |
@@ -23,37 +23,40 @@ The complete application is four Swift files:
 | [PermissionsService.swift](huuuiii/PermissionsService.swift) | Permission prompt and initial trust polling |
 | [ContentView.swift](huuuiii/ContentView.swift) | Preferences and Quit |
 | [HuuuiiiApp.swift](huuuiii/HuuuiiiApp.swift) | The only scene, a `MenuBarExtra` |
+| [ModifierBinding.swift](huuuiii/ModifierBinding.swift) | Preference migration, modifier matching, recording state, and activation identifiers |
+| [ModifierRecorder.swift](huuuiii/ModifierRecorder.swift) | The focused modifier recording field |
 
-There are no test sources or CI workflows in the checkout.
+Lightweight logic and native recorder checks live in [tests](tests) and run with `just test`.
+There are no CI workflows in the checkout.
 The Xcode project contains empty unit-test and UI-test targets.
 
 ## Must fix
 
-### 1. A previous key press can activate scrolling during a later press
+### 1. Resolved: a previous key press cannot activate a later session
 
 **Where:** [AppDelegate.swift](huuuiii/AppDelegate.swift), lines 28–46 and 59–95.
 
-**Problem:** Delayed callbacks share `stillPressed`, so releasing and pressing again makes an old callback valid again.
+**Inherited problem:** Delayed callbacks shared `stillPressed`, so releasing and pressing again made an old callback valid again.
 With a 500 ms delay, press at 0 ms, release at 100 ms, and press at 200 ms: the old callback starts scrolling at 500 ms, only 300 ms into the new press.
 The new callback then installs another mouse monitor at 700 ms without removing the first, and the overwritten monitor handle cannot be used to stop it.
 
-**Do:** Own one pending activation and one mouse monitor on `AppDelegate`.
-Invalidate the pending activation whenever the modifier combination stops matching, and check an activation identifier before installing a monitor.
-Make starting and stopping safe to call repeatedly, including permission recovery and termination.
+**Changed:** Every activation has an identifier, and ending a session invalidates its pending callbacks before another session can start.
+Releasing the combination, opening preferences, starting recording, or terminating the app cancels scrolling and removes the current mouse monitor.
 
-**If skipped:** Rapid modifier use can produce duplicate scrolling and scrolling that continues after release.
+**Checked:** Deterministic request, release, repress, and cancellation checks cover stale activation identifiers.
+Actual global pointer-event behavior still needs a live check.
 
-**Check:** Add a deterministic test for press, release, and repress before the delay expires, asserting one activation after the full second delay and no active monitors after release.
-
-### 2. Pointer state survives sessions and drops valid movement
+### 2. First movement and reversals can drop valid scrolling
 
 **Where:** [AppDelegate.swift](huuuiii/AppDelegate.swift), lines 24–26 and 58–103.
 
-**Problem:** `lastDelta` is never cleared, so the next scrolling session can discard a movement that happens to reverse the previous session's last movement.
-The same reversal check also discards intentional direction changes within a session.
-`lastPos` starts empty, so the first movement is discarded, and a matching flags change can overwrite the starting position without clearing the previous position.
+**Completed:** Pointer positions and `lastDelta` are reset when a scrolling session ends.
+Unrelated modifier flags no longer restart a matching session.
 
-**Do:** Initialize and reset all movement state at explicit session boundaries.
+**Remaining problem:** The reversal check discards intentional direction changes within a session.
+`lastPos` starts empty, so the first movement is discarded.
+
+**Do:** Initialize the last pointer position when the session starts.
 Remove the reversal heuristic unless a reproducible synthetic-event feedback case justifies it; if feedback exists, identify generated events instead of guessing from direction.
 Keep cursor restoration tied to the session that actually started.
 
@@ -75,19 +78,18 @@ Xcode disables it for the normal locally signed Debug build.
 
 **Check:** Verify global modifier observation and scroll posting in another application using the actual Release app.
 
-### 4. Releasing the modifier inside huuuiii can leave scrolling active
+### 4. Resolved: entering preferences cancels scrolling
 
 **Where:** [AppDelegate.swift](huuuiii/AppDelegate.swift), lines 28 and 59.
 
-**Problem:** Both monitors are global monitors, which do not receive events delivered to huuuiii itself.
+**Inherited problem:** Both monitors are global monitors, which do not receive events delivered to huuuiii itself.
 Starting a session in another application and releasing the modifier while huuuiii receives events can therefore miss the stop transition.
 Apple documents this exclusion in [the global monitor API](https://developer.apple.com/documentation/appkit/nsevent/addglobalmonitorforevents(matching:handler:)).
 
-**Do:** Route local and global modifier changes through the same session transition logic, and stop an active session when the app becomes active.
-Remove every registered monitor on shutdown.
+**Changed:** Opening preferences, starting the recorder, and activating the app explicitly cancel pending and active scrolling.
+Recording uses a separate local event monitor that is removed when the field loses focus or disappears.
+All scroll monitors are removed on shutdown.
 Keep a single event tap as a later option if pointer suppression becomes necessary.
-
-**If skipped:** Opening preferences while scrolling can leave the internal modifier state out of sync with the keyboard.
 
 **Check:** Start scrolling outside huuuiii, open its preferences, release the modifier, and return to another app.
 
@@ -182,12 +184,13 @@ LaunchAtLogin retains its own declared language mode rather than being forced in
 The activation modifiers must be hidden from applications and macOS while huuuiii generates scrolling.
 Ctrl+scroll can trigger zoom, so modifier suppression is required behavior rather than an optional compatibility check.
 
-- [ ] Replace the single-value picker with independent selections for Control, Option, Command, Shift, and Function.
-- [ ] Store the selection as a modifier bit mask and migrate the existing `modifier` string once.
-- [ ] Preserve the existing Option default and prevent an empty selection from enabling scrolling unconditionally.
-- [ ] Match the complete selected combination against the supported modifier flags, ignoring unrelated flags such as Caps Lock.
-- [ ] Preserve today's exact-match behavior: an extra supported modifier stops scrolling.
-- [ ] Reuse the session cancellation from item 1 whenever matching changes or the preference is edited.
+- [x] Replace the picker with a field that records Control, Option, Command, Shift, and Function combinations.
+- [x] Save after all modifiers are released, with Escape and focus loss cancelling recording.
+- [x] Store the selection as a modifier bit mask and migrate the existing `modifier` string.
+- [x] Preserve the existing Option default and prevent an empty selection from enabling scrolling unconditionally.
+- [x] Match the complete selected combination against the supported modifier flags, ignoring unrelated flags such as Caps Lock.
+- [x] Preserve exact-match behavior: an extra supported modifier stops scrolling.
+- [x] Reuse session cancellation whenever matching changes or recording begins.
 - [ ] Test every single modifier, multiple press/release orders, extra modifiers, Caps Lock, and Function/Globe behavior on real hardware.
 - [ ] Strip the selected activation modifiers from generated scroll events.
 - [ ] Verify whether clearing event flags also prevents actions driven by the physically held modifier; if necessary, prototype event interception that hides activation modifiers for the active scrolling session.
@@ -195,7 +198,8 @@ Ctrl+scroll can trigger zoom, so modifier suppression is required behavior rathe
 - [ ] With macOS modifier-scroll zoom enabled, verify that Control-triggered huuuiii scrolling scrolls without zooming.
 - [ ] Verify that combinations containing Control, Command, Option, or Shift do not trigger zoom, navigation, or other modified-scroll actions in target apps.
 
-**Touches:** `ContentView.swift`, modifier observation and scroll generation in `AppDelegate.swift`, preference migration, focused unit tests, and the README screenshot.
+**Implemented in:** `ModifierBinding.swift`, `ModifierRecorder.swift`, `ContentView.swift`, `AppDelegate.swift`, and the checks in `tests`.
+Modifier suppression and an updated screenshot remain separate work.
 `NSEvent.ModifierFlags` already represents combinations, so this needs no shortcut-recording dependency or general hotkey framework.
 
 ### 11. Use “Device Control and Data Access” in permission guidance
@@ -266,19 +270,19 @@ Keep this scoped to pointing devices; separate activation-keyboard filtering is 
 ## Implementation order and release checks
 
 1. Establish fork identity, consistent entitlements, and a working current-Xcode build.
-2. Fix session cancellation, movement state, local modifier handling, and preference validation with focused tests.
-3. Prototype device attribution together with activation-modifier suppression, then add device selection, modifier combinations, and permission recovery, including migration from existing settings.
+2. Finish movement-state and preference validation fixes, with focused tests.
+3. Prototype device attribution together with activation-modifier suppression, then add device selection and permission recovery.
 4. Add icon hiding with reliable reopen behavior.
 5. Investigate scrolling deltas and gesture phases against a repeatable hardware baseline.
 6. Update screenshots and installation instructions, then sign, notarize, and verify the actual distributed app.
 
-Use the existing unit-test target for matching, migration, delayed activation, and movement calculations.
+Extend the lightweight checks in `tests` for matching, migration, delayed activation, and movement calculations.
 Avoid a broad UI-test suite; permission dialogs, login behavior, pointer routing, and menu bar lifecycle still need real macOS checks.
 Verify delay extremes, speed extremes, both axes individually and together, natural scrolling, sleep/wake, multiple displays, selected and excluded devices, and rapid modifier changes.
 
 ## Verification and limits of this review
 
-- Read all four Swift sources, the original entitlement files, the Xcode project, the dependency lockfile, and the README.
+- Read all six Swift sources, the original entitlement files, the Xcode project, the dependency lockfile, and the README.
 - Confirmed the project and entitlement property lists pass `plutil -lint`.
 - Reproduced the delayed-activation race and cross-session reversal suppression in small deterministic models without installing input monitors.
 - Confirmed local macOS 27.0.1 and Xcode 27.1, and checked Apple's release and API documentation plus SensibleSideButtons' source.
@@ -288,8 +292,10 @@ Verify delay extremes, speed extremes, both axes individually and together, natu
 - Built Debug and Release in Swift 6 on macOS 27.0.1 using Xcode 27.1, with the lockfile restricted to LaunchAtLogin `1.1.0`.
 - Verified both local ad hoc signatures and inspected both built apps for the absence of sandbox and file-access entitlements and a macOS 14.0 minimum.
 - Release used an explicit local signing override for verification; distribution signing, notarization, and runtime testing remain pending.
-- No automated test suite or macOS 14 runtime verification was performed.
+- Ran `just test` for legacy preference migration, exact modifier matching, recording order, and stale activation cancellation.
+- Exercised the native field with local events, including rapid release, typed letters, Escape, focus loss, and removal without changing the saved chord.
+- No macOS 14 runtime or physical keyboard verification was performed.
 - Did not launch huuuiii, change privacy grants or login items, run signed Release behavior, inspect every binary image, or test physical pointer and trackpad hardware.
 
-**Verdict:** Fix activation ownership and establish a Release build that can perform its core input work before adding the requested features.
+**Verdict:** Finish movement handling and modifier suppression, then verify global scrolling and permission behavior using the signed Release app.
 Skip new dependencies, a broad architecture rewrite, automatic updating, and private gesture synthesis for this first fork pass.

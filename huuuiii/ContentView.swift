@@ -9,8 +9,9 @@ import SwiftUI
 import LaunchAtLogin
 
 struct ContentView: View {
-    // Define a property using @AppStorage
-    @AppStorage("modifier") private var modifier = "option"
+    let stopScrolling: () -> Void
+
+    @AppStorage(ModifierBinding.preferenceKey) private var modifierFlags = Int(NSEvent.ModifierFlags.option.rawValue)
     @AppStorage("scrollSpeed") private var scrollSpeed = 20.0
     @AppStorage("naturalScrolling") private var naturalScrolling = true
     @AppStorage("xEnabled") private var xEnabled = true
@@ -35,12 +36,9 @@ struct ContentView: View {
                         Text("2000")
                     }
                     Text("\(triggerDelay, specifier: "%.0f") ms")
-                    Picker("Modifier:", selection: $modifier) {
-                        Text("Option \(Image(systemName: "option"))").tag("option")
-                        Text("Control \(Image(systemName: "control"))").tag("control")
-                        Text("Command \(Image(systemName: "command"))").tag("command")
-                        Text("Shift \(Image(systemName: "shift"))").tag("shift")
-                        Text("Function \(Image(systemName: "globe"))").tag("function")
+                    LabeledContent("Scroll modifiers:") {
+                        ModifierRecorder(modifierFlags: $modifierFlags, onStartRecording: stopScrolling)
+                            .frame(width: 150)
                     }
                     LabeledContent("Scroll Direction:") {
                         Toggle("Natural Scrolling", isOn: $naturalScrolling)
@@ -62,5 +60,6 @@ struct ContentView: View {
             Divider()
             Button("Quit", action: { NSApplication.shared.terminate(nil) })
         }.padding(10)
+        .onAppear(perform: stopScrolling)
     }
 }

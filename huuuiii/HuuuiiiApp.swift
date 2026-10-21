@@ -13,7 +13,7 @@ struct HuuuiiiApp: App {
     
     var body: some Scene {
         MenuBarExtra("huuuiii", image: "Icon") {
-            ContentView()
+            ContentView(stopScrolling: appDelegate.pauseScrolling)
         }.menuBarExtraStyle(.window)
 
     }

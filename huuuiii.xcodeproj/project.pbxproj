@@ -14,6 +14,8 @@
 		11C795A52C7620A100CF3F6A /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C795A42C7620A100CF3F6A /* AppDelegate.swift */; };
 		11C795A92C7875CA00CF3F6A /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 11C795A82C7875CA00CF3F6A /* LaunchAtLogin */; };
 		DBB7ED102C8CC69F00E055E6 /* PermissionsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBB7ED0F2C8CC69F00E055E6 /* PermissionsService.swift */; };
+		F4C930B62EF0123400000002 /* ModifierBinding.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4C930B62EF0123400000001 /* ModifierBinding.swift */; };
+		F4C930B62EF0123400000004 /* ModifierRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4C930B62EF0123400000003 /* ModifierRecorder.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -44,6 +46,8 @@
 		11C795A22C7611C100CF3F6A /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		11C795A42C7620A100CF3F6A /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		DBB7ED0F2C8CC69F00E055E6 /* PermissionsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsService.swift; sourceTree = "<group>"; };
+		F4C930B62EF0123400000001 /* ModifierBinding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModifierBinding.swift; sourceTree = "<group>"; };
+		F4C930B62EF0123400000003 /* ModifierRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModifierRecorder.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -100,6 +104,8 @@
 				11C795792C7499F500CF3F6A /* Preview Content */,
 				11C795A22C7611C100CF3F6A /* ContentView.swift */,
 				DBB7ED0F2C8CC69F00E055E6 /* PermissionsService.swift */,
+				F4C930B62EF0123400000001 /* ModifierBinding.swift */,
+				F4C930B62EF0123400000003 /* ModifierRecorder.swift */,
 			);
 			path = huuuiii;
 			sourceTree = "<group>";
@@ -252,6 +258,8 @@
 				11C795A52C7620A100CF3F6A /* AppDelegate.swift in Sources */,
 				11C795722C7499F400CF3F6A /* HuuuiiiApp.swift in Sources */,
 				11C795A32C7611C100CF3F6A /* ContentView.swift in Sources */,
+				F4C930B62EF0123400000002 /* ModifierBinding.swift in Sources */,
+				F4C930B62EF0123400000004 /* ModifierRecorder.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

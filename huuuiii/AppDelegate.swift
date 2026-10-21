@@ -14,35 +14,49 @@ import SwiftUI
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var flagsMonitor: Any?
     private var permissionsService = PermissionsService.shared
+    private var stopScrolling: (() -> Void)?
     
     func applicationDidFinishLaunching(_ notification: Notification) {
+        ModifierBinding.migrate(in: .standard)
         PermissionsService.acquireAccessibilityPrivileges()
         permissionsService.pollAccessibilityPrivileges(onTrusted: self.scrollMonitor)
     }
     
     func scrollMonitor() {
+        guard flagsMonitor == nil else { return }
         var mouseMonitor: Any?
         var initialPos: CGPoint?
         var lastPos: CGPoint?
         var lastDelta: CGPoint?
-        var stillPressed = true
-        flagsMonitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { event in
+        var activation = ScrollActivation()
+        stopScrolling = {
+            activation.cancel()
             if let mouseMonitor = mouseMonitor {
                 NSEvent.removeMonitor(mouseMonitor)
             }
             mouseMonitor = nil
-            
-            var all = self.allModifiers()
-            all.remove(self.getModifierFlag())
-            if event.modifierFlags.contains(self.getModifierFlag()) && event.modifierFlags.intersection(all).isEmpty {
-                stillPressed = true
-                
+            if let initialPos, lastPos != nil {
+                let mouseEvent = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: initialPos, mouseButton: .left)
+                mouseEvent?.post(tap: .cghidEventTap)
+            }
+            initialPos = nil
+            lastPos = nil
+            lastDelta = nil
+        }
+        flagsMonitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { event in
+            let required = ModifierBinding.value(in: .standard)
+            let matches = ModifierBinding.matches(event.modifierFlags, required: required) && !NSApp.isActive
+            guard matches != activation.isRequested else { return }
+            self.stopScrolling?()
+            if matches {
+                let request = activation.request()
+
                 let triggerDelayAny = UserDefaults.standard
                     .object(forKey: "triggerDelay")
                 let triggerDelay = triggerDelayAny != nil ? triggerDelayAny as! Double : 0.0
                 
                 DispatchQueue.main.asyncAfter(deadline: .now() + (triggerDelay / 1000.0)) {
-                    if (stillPressed == false) {
+                    if !activation.isCurrent(request) || NSApp.isActive {
                         return
                     }
                     let scrollSpeedAny = UserDefaults.standard
@@ -94,45 +108,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                         lastPos = pos
                     }
                 }
-            } else {
-                stillPressed = false
-                if initialPos != nil && lastPos != nil {
-                    let mouseEvent = CGEvent(mouseEventSource: nil, mouseType: CGEventType.mouseMoved, mouseCursorPosition: initialPos!, mouseButton: CGMouseButton.left)
-                    mouseEvent?.post(tap: CGEventTapLocation.cghidEventTap)
-                }
-                initialPos = nil
-                lastPos = nil
             }
         }
     }
-    
-    func allModifiers() -> NSEvent.ModifierFlags {
-        return [.control,.function,.command,.option,.shift]
+
+    func applicationDidBecomeActive(_ notification: Notification) {
+        pauseScrolling()
     }
-    
-    func getModifierFlag() -> NSEvent.ModifierFlags {
-        let modifierAny = UserDefaults.standard
-            .object(forKey: "modifier")
-        let modifier = modifierAny != nil ? modifierAny as! String : "option"
-        
-        var flag: NSEvent.ModifierFlags
-        switch modifier {
-        case "control":
-            flag = .control
-        case "command":
-            flag = .command
-        case "shift":
-            flag = .shift
-        case "function":
-            flag = .function
-        default:
-            flag = .option
-        }
-        
-        return flag
+
+    func pauseScrolling() {
+        stopScrolling?()
     }
     
     func applicationWillTerminate(_ notification: Notification) {
+        stopScrolling?()
+        stopScrolling = nil
         if let flagsMonitor = flagsMonitor {
             NSEvent.removeMonitor(flagsMonitor)
         }
