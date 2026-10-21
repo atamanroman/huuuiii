@@ -45,6 +45,22 @@ With `just` installed, use the [justfile](justfile) for terminal builds.
 Build products are in `build/Build/Products/Debug` and `build/Build/Products/Release`.
 
 Local signing can require fresh permission grants after rebuilding; see [Apple's code-signing requirements](https://developer.apple.com/documentation/technotes/tn3127-inside-code-signing-requirements).
+If Debug still reports missing access while huuuiii is enabled in System Settings, quit huuuiii and reset only its Accessibility grant:
+
+```sh
+tccutil reset Accessibility io.github.atamanroman.huuuiii
+```
+
+Reopen the existing build without rebuilding:
+
+```sh
+open build/Build/Products/Debug/huuuiii.app
+```
+
+Enable huuuiii under System Settings → Privacy & Security → Device Control and Data Access (Accessibility on older macOS versions).
+If the existing entry still fails, remove it with the minus button and add `build/Build/Products/Debug/huuuiii.app` again.
+Signing Debug with a consistent Apple Development certificate gives macOS a stable identity across rebuilds; ad hoc signing does not.
+The `just release` recipe also uses ad hoc signing and has the same limitation.
 Release distribution requires your own signing team and certificate.
 The app uses the bundle identifier `io.github.atamanroman.huuuiii` and keeps its preferences and login registration separate from Tabula.
 Existing Tabula preferences are not migrated automatically, and macOS permissions must be granted to the fork separately.

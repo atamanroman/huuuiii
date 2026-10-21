@@ -146,6 +146,9 @@ Handle failure to create an event or register a monitor without force-unwrapping
 
 **Completed:** The project and app are named `huuuiii`, use `io.github.atamanroman.huuuiii`, and no longer select upstream's development team.
 Debug uses local ad hoc signing and builds without a development team.
+Diagnosing a missing Debug permission on macOS 27 confirmed that TCC rejected the current build because the saved Accessibility grant required an older code hash.
+The README documents resetting only the fork's grant and approving the current build again.
+Debug and `just release` both need a consistent certificate to preserve grants across changed builds.
 LaunchAtLogin is pinned to exactly `1.1.0` in the project and lockfile, preserving the previously locked source revision.
 The README identifies the Tabula fork, credits the original authors, and explains that upstream downloads install Tabula.
 Existing Tabula preferences are intentionally not migrated automatically, and permission grants and login registration belong to the new app identity.
@@ -295,7 +298,8 @@ Verify delay extremes, speed extremes, both axes individually and together, natu
 - Ran `just test` for legacy preference migration, exact modifier matching, recording order, and stale activation cancellation.
 - Exercised the native field with local events, including rapid release, typed letters, Escape, focus loss, and removal without changing the saved chord.
 - No macOS 14 runtime or physical keyboard verification was performed.
-- Did not launch huuuiii, change privacy grants or login items, run signed Release behavior, inspect every binary image, or test physical pointer and trackpad hardware.
+- Launched Debug while diagnosing the stale Accessibility grant, reset only the fork's grant, and reopened the same build for approval.
+- Did not verify access after approval, change login items, run signed Release behavior, inspect every binary image, or test physical pointer and trackpad hardware.
 
 **Verdict:** Finish movement handling and modifier suppression, then verify global scrolling and permission behavior using the signed Release app.
 Skip new dependencies, a broad architecture rewrite, automatic updating, and private gesture synthesis for this first fork pass.
